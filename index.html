@@ -2,89 +2,55 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Cant Wait 🤠</title>
+  <title>Something’s coming up ✨</title>
   <style>
-    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background:#0b1220; color:#e9eef7; }
-    .box { text-align:center; padding:2rem 2.5rem; border-radius:1rem; background:#111a2e; box-shadow:0 10px 30px rgba(0,0,0,.35); }
-    h1 { margin:0 0 .5rem; font-size:1.15rem; font-weight:600; color:#9bb1ff; letter-spacing:.02em; }
-    .when { font-size:.95rem; color:#cfd8ff; opacity:.85; margin-bottom:1.25rem; }
-    .timer { display:flex; gap:1rem; justify-content:center; align-items:stretch; }
-    .unit { background:#0e1830; padding:.9rem .85rem; border-radius:.8rem; min-width:82px; }
-    .num { font-weight:700; font-size:2rem; line-height:1; }
-    .lbl { font-size:.8rem; opacity:.75; margin-top:.25rem; text-transform:uppercase; letter-spacing:.06em; }
-    .done { font-size:1.1rem; color:#9cffc9; margin-top:1rem; display:none; }
-    .note { margin-top:1rem; font-size:.8rem; opacity:.7; }
-    @media (max-width:480px){ .num{font-size:1.6rem} .unit{min-width:70px} }
+    body { 
+      font-family: system-ui, sans-serif;
+      background: #fafafa; 
+      color: #222; 
+      text-align: center; 
+      padding: 2rem;
+    }
+    h1 { font-weight: 500; margin-bottom: 1rem; }
+    .countdown { font-size: 1.5rem; margin-top: 1rem; }
+    .num { font-weight: bold; }
+    .done { margin-top: 1.5rem; color: #2a8f4d; display:none; }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h1>Countdown</h1>
-    <div class="when" id="whenText"></div>
-
-    <div class="timer" id="timer">
-      <div class="unit"><div class="num" id="d">0</div><div class="lbl">Days</div></div>
-      <div class="unit"><div class="num" id="h">0</div><div class="lbl">Hours</div></div>
-      <div class="unit"><div class="num" id="m">0</div><div class="lbl">Minutes</div></div>
-      <div class="unit"><div class="num" id="s">0</div><div class="lbl">Seconds</div></div>
-    </div>
-
-    <div class="done" id="doneText">Time’s up!</div>
-    <div class="note">This countdown is to a fixed instant: 6:00 PM AEST, 12 Sep 2025.</div>
-  </div>
+  <h1>Just a little countdown…</h1>
+  <div id="countdown" class="countdown"></div>
+  <div id="done" class="done">It’s time 💫</div>
 
   <script>
-    // === EDIT THIS TO CHANGE THE DEADLINE ===
-    // 6:00 PM AEST (UTC+10) on 12/09/2025 == 2025-09-12T08:00:00Z in UTC.
-    const TARGET_ISO_UTC = '2025-09-12T08:00:00Z';
-    // =======================================
+    // Change this to whatever date/time you want (in your local time)
+    const target = new Date("2025-09-12T18:00:00+10:00").getTime(); // 6 PM AEST, 12 Sep 2025
 
-    const target = new Date(TARGET_ISO_UTC).getTime();
-    const dEl = document.getElementById('d');
-    const hEl = document.getElementById('h');
-    const mEl = document.getElementById('m');
-    const sEl = document.getElementById('s');
-    const timerEl = document.getElementById('timer');
-    const doneEl  = document.getElementById('doneText');
-    const whenEl  = document.getElementById('whenText');
-
-    // Show a friendly label of the target in AEST and viewer’s local time
-    try {
-      const aust = new Intl.DateTimeFormat('en-AU', {
-        timeZone: 'Australia/Melbourne', dateStyle: 'medium', timeStyle: 'short'
-      }).format(new Date(TARGET_ISO_UTC));
-      const local = new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium', timeStyle: 'short'
-      }).format(new Date(TARGET_ISO_UTC));
-      whenEl.textContent = `Ends: ${aust} (AEST) • Your local time: ${local}`;
-    } catch { whenEl.textContent = `Ends: ${new Date(TARGET_ISO_UTC).toUTCString()} (UTC)`; }
+    const el = document.getElementById("countdown");
+    const doneEl = document.getElementById("done");
 
     function tick() {
       const now = Date.now();
       let diff = Math.max(0, target - now);
-
       const sec = Math.floor(diff / 1000);
-      const days = Math.floor(sec / 86400);
-      const hrs  = Math.floor((sec % 86400) / 3600);
-      const mins = Math.floor((sec % 3600) / 60);
-      const secs = sec % 60;
 
-      dEl.textContent = days;
-      hEl.textContent = String(hrs).padStart(2,'0');
-      mEl.textContent = String(mins).padStart(2,'0');
-      sEl.textContent = String(secs).padStart(2,'0');
-
-      if (diff === 0) {
-        timerEl.style.display = 'none';
-        doneEl.style.display = 'block';
-        clearInterval(handle);
+      if (sec <= 0) {
+        el.style.display = "none";
+        doneEl.style.display = "block";
+        clearInterval(timer);
+        return;
       }
+
+      const d = Math.floor(sec / 86400);
+      const h = Math.floor((sec % 86400) / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+
+      el.textContent = `${d}d ${h}h ${m}m ${s}s`;
     }
 
     tick();
-    const handle = setInterval(tick, 1000);
+    const timer = setInterval(tick, 1000);
   </script>
 </body>
 </html>
