@@ -112,7 +112,7 @@
           render();
         }, 650);
         input.disabled = true; btn.disabled = true;
-        msg.textContent = 'Nice! 😄';
+        msg.textContent = '';
       } else if (guesses.length >= MAX_GUESSES) {
         input.disabled = true; btn.disabled = true;
         msg.textContent = `Out of tries! (refresh to try again)`;
