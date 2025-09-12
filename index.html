@@ -1,56 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Monza Recap</title>
+  <meta charset="UTF-8" />
+  <title>Hey</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { 
-      font-family: system-ui, sans-serif;
-      background: #fafafa; 
-      color: #222; 
-      text-align: center; 
-      padding: 2rem;
+    :root { --size: 54px; --gap: 6px; }
+    body { font-family: system-ui, sans-serif; background:#fafafa; margin:0; padding:2rem;
+           display:flex; flex-direction:column; align-items:center; gap:1rem; }
+    h1 { font-size:1.1rem; margin:0; }
+    #board { width: min(100%, 6*var(--size) + 5*var(--gap)); }
+    .row { display:grid; grid-template-columns: repeat(5, var(--size)); gap: var(--gap); margin-bottom: var(--gap); }
+    .row.correct { grid-template-columns: repeat(6, var(--size)); } /* adds ? slot */
+    .cell {
+      width: var(--size); height: var(--size);
+      border: 2px solid #9aa0a6; display:flex; align-items:center; justify-content:center;
+      font-weight: 700; font-size: 1.6rem; text-transform: uppercase; background:#fff;
     }
-    h1 { font-weight: 500; margin-bottom: 1rem; }
-    .countdown { font-size: 1.5rem; margin-top: 1rem; }
-    .num { font-weight: bold; }
-    .done { margin-top: 1.5rem; color: #2a8f4d; display:none; }
+    .correct-tile { background:#6aaa64; color:#fff; border-color:#6aaa64; }
+    .present-tile { background:#c9b458; color:#fff; border-color:#c9b458; }
+    .absent-tile  { background:#787c7e; color:#fff; border-color:#787c7e; }
+
+    .controls { display:flex; gap:.5rem; align-items:center; }
+    input[type="text"] { text-transform:uppercase; font-size:1.1rem; text-align:center; width: 130px; }
+    button { font-size:1rem; padding:.5rem .8rem; cursor:pointer; }
+
+    /* Fade-in for the question mark */
+    .qm { opacity: 0; transform: scale(.9); }
+    .qm.reveal { animation: pop .45s ease-out forwards; }
+    @keyframes pop {
+      to { opacity:1; transform: scale(1); }
+    }
+
+    #msg { min-height:1.2rem; }
   </style>
 </head>
 <body>
-  <h1>Date countdown…</h1>
-  <div id="countdown" class="countdown"></div>
-  <div id="done" class="done">It’s time 🥳</div>
+  <h1>Date Wordle</h1>
+
+  <div id="board"></div>
+
+  <div class="controls">
+    <input id="guess" maxlength="5" placeholder="Type guess" />
+    <button id="go">Guess</button>
+  </div>
+
+  <div id="msg"></div>
 
   <script>
-    // Change this to whatever date/time you want (in your local time)
-    const target = new Date("2025-09-12T18:00:00+10:00").getTime(); // 6 PM AEST, 12 Sep 2025
+    const SECRET = "MOVIE";
+    const MAX_GUESSES = 5;
 
-    const el = document.getElementById("countdown");
-    const doneEl = document.getElementById("done");
+    const board = document.getElementById('board');
+    const input = document.getElementById('guess');
+    const btn = document.getElementById('go');
+    const msg = document.getElementById('msg');
 
-    function tick() {
-      const now = Date.now();
-      let diff = Math.max(0, target - now);
-      const sec = Math.floor(diff / 1000);
+    // Each guess: { text: "ABCDE", showQ: false, correct: bool }
+    const guesses = [];
 
-      if (sec <= 0) {
-        el.style.display = "none";
-        doneEl.style.display = "block";
-        clearInterval(timer);
-        return;
-      }
-
-      const d = Math.floor(sec / 86400);
-      const h = Math.floor((sec % 86400) / 3600);
-      const m = Math.floor((sec % 3600) / 60);
-      const s = sec % 60;
-
-      el.textContent = `${d}d ${h}h ${m}m ${s}s`;
+    function colorRow(guess) {
+      // Wordle-style coloring with simple includes check
+      const g = guess.text.split('');
+      const s = SECRET.split('');
+      return g.map((ch, i) => {
+        if (ch === s[i]) return 'correct-tile';
+        if (SECRET.includes(ch)) return 'present-tile';
+        return 'absent-tile';
+      });
     }
 
-    tick();
-    const timer = setInterval(tick, 1000);
+    function render() {
+      board.innerHTML = '';
+      guesses.forEach((guess, idx) => {
+        const row = document.createElement('div');
+        row.className = 'row' + (guess.correct ? ' correct' : '');
+        const colors = colorRow(guess);
+        // 5 letters
+        guess.text.split('').forEach((ch, i) => {
+          const cell = document.createElement('div');
+          cell.className = 'cell ' + colors[i];
+          cell.textContent = ch;
+          row.appendChild(cell);
+        });
+        // Optional 6th "?" tile after correct guess
+        if (guess.correct) {
+          const q = document.createElement('div');
+          q.className = 'cell correct-tile qm' + (guess.showQ ? ' reveal' : '');
+          q.textContent = '?';
+          row.appendChild(q);
+        }
+        board.appendChild(row);
+      });
+    }
+
+    function submitGuess() {
+      const raw = input.value.trim().toUpperCase();
+      if (raw.length !== 5) { msg.textContent = 'Please enter exactly 5 letters.'; return; }
+      if (guesses.length >= MAX_GUESSES) { return; }
+
+      const entry = { text: raw, correct: raw === SECRET, showQ: false };
+      guesses.push(entry);
+      input.value = '';
+      msg.textContent = '';
+      render();
+
+      if (entry.correct) {
+        // Reveal the bonus "?" a moment later
+        setTimeout(() => {
+          entry.showQ = true;
+          render();
+        }, 650);
+        input.disabled = true; btn.disabled = true;
+        msg.textContent = 'Nice! 😄';
+      } else if (guesses.length >= MAX_GUESSES) {
+        input.disabled = true; btn.disabled = true;
+        msg.textContent = `Out of tries! (refresh to try again)`;
+      }
+    }
+
+    btn.addEventListener('click', submitGuess);
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') submitGuess(); });
+
+    // Initial render (empty)
+    render();
   </script>
 </body>
 </html>
