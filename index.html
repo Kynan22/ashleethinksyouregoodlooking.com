@@ -19,6 +19,8 @@
     label { display:inline-flex; align-items:center; gap:.4rem; cursor:pointer; }
     .msg { white-space:pre-line; font-size:1.05rem; }
     .err { color:#b00020; margin-top:.4rem; min-height:1.1rem; }
+    .correct { color:#16a34a; margin-top:.8rem; }
+    .wrong { color:#b00020; margin-top:.8rem; }
   </style>
 </head>
 <body>
@@ -37,7 +39,7 @@
 
       <!-- Reveal area -->
       <div id="reveal" class="hidden">
-        <div class="msg">would you like a third date?</div>
+        <div class="msg">i like you :)\n\nhow about a third date?</div>
         <div class="sp"></div>
 
         <div class="row">
@@ -45,11 +47,12 @@
           <label><input type="checkbox" id="no"> no</label>
         </div>
 
-        <div id="invite" class="hidden msg" style="margin-top:.8rem;">
-          Lets play some board games and I'll cook you dinner :)
+        <div id="invite" class="hidden msg correct">
+          correct answer!<br>
+          how do board games and a terribly cooked meal sound?
         </div>
 
-        <div id="wrong" class="hidden msg" style="margin-top:.8rem; color:#b00020;">
+        <div id="wrong" class="hidden msg wrong">
           wrong answer please try again
         </div>
       </div>
