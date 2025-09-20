@@ -21,6 +21,10 @@
     .err { color:#b00020; margin-top:.4rem; min-height:1.1rem; }
     .correct { color:#16a34a; margin-top:.8rem; }
     .wrong { color:#b00020; margin-top:.8rem; }
+    /* admin feed */
+    .admin { margin-top:1rem; border-top:1px dashed #ddd; padding-top:1rem; font-size:.95rem; }
+    .feed-row { padding:.3rem 0; border-bottom:1px solid #f2f2f2; }
+    .small { font-size:.85rem; color:#666; }
   </style>
 </head>
 <body>
@@ -56,11 +60,21 @@
           wrong answer please try again
         </div>
       </div>
+
+      <!-- Optional admin view (only when you open with ?admin=1) -->
+      <div id="adminFeed" class="admin hidden">
+        <div><strong>Recent guesses</strong> <span class="small">— visible only in admin mode</span></div>
+        <div id="feed"></div>
+      </div>
     </div>
   </div>
 
   <script>
-    const SECRET = "chorizo";
+    const SECRET = "chorizo123";
+
+    // === EDIT THIS: paste your Apps Script Web App URL ===
+    const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
+    // =====================================================
 
     const form = document.getElementById('gate');
     const pw = document.getElementById('pw');
@@ -71,21 +85,77 @@
     const invite = document.getElementById('invite');
     const wrong = document.getElementById('wrong');
 
-    // handle password submit
+    const adminFeed = document.getElementById('adminFeed');
+    const feedEl = document.getElementById('feed');
+
+    // ---- Helpers ----
+    const isAdminMode = () => location.search.includes('admin=1');
+
+    function escapeHtml(s){
+      return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    // Send guess to Google Apps Script (append to Sheet)
+    function logGuess(guess) {
+      if (!WEBAPP || WEBAPP.includes('WEB_APP_URL_HERE')) return; // not configured yet
+      try {
+        fetch(WEBAPP, {
+          method: 'POST',
+          mode: 'no-cors',           // works from static hosts without CORS setup
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guess: guess, ua: navigator.userAgent || '' })
+        });
+      } catch (_) {}
+    }
+
+    // Load recent guesses (JSONP) — only in admin mode
+    function loadFeed() {
+      if (!WEBAPP || WEBAPP.includes('WEB_APP_URL_HERE')) return;
+      const cb = 'feedcb_' + Math.random().toString(36).slice(2);
+      window[cb] = function(data) {
+        const rows = (data && data.rows) ? data.rows : [];
+        const last = rows.slice(-25).reverse(); // show up to 25 most recent
+        feedEl.innerHTML = last.length ? '' : '<div class="small">No guesses yet.</div>';
+        last.forEach(r => {
+          // expected row: [Timestamp, Guess, UA]
+          const when = r[0] ? new Date(r[0]).toLocaleString() : '';
+          const g = r[1] || '';
+          const ua = r[2] || '';
+          const div = document.createElement('div');
+          div.className = 'feed-row';
+          div.innerHTML = `<strong>${escapeHtml(g)}</strong> <span class="small">— ${escapeHtml(when)}</span><div class="small">${escapeHtml(ua)}</div>`;
+          feedEl.appendChild(div);
+        });
+        delete window[cb];
+        script.remove();
+      };
+      const script = document.createElement('script');
+      script.src = WEBAPP + '?callback=' + cb;
+      document.body.appendChild(script);
+    }
+
+    // ---- Existing logic (unchanged display flow) ----
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       err.textContent = "";
-      const v = (pw.value || "").trim().toLowerCase();
+      const raw = (pw.value || "").trim();
+      const v = raw.toLowerCase();
+
+      // log every attempt
+      logGuess(raw);
+
       if (v === SECRET.toLowerCase()) {
         reveal.classList.remove('hidden');
         pw.value = "";
         yes.focus();
       } else {
         err.textContent = "nope — try again";
+        pw.value = "";
       }
+
+      if (isAdminMode()) setTimeout(loadFeed, 800); // refresh feed shortly after
     });
 
-    // checkbox logic
     yes.addEventListener('change', () => {
       if (yes.checked) {
         no.checked = false;
@@ -105,6 +175,12 @@
         wrong.classList.add('hidden');
       }
     });
+
+    // Enable admin mode if query param present
+    if (isAdminMode()) {
+      adminFeed.classList.remove('hidden');
+      loadFeed();
+    }
   </script>
 </body>
 </html>
