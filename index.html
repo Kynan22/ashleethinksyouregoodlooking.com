@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" />
-<meta http-equiv="Expires" content="0" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <meta charset="utf-8" />
   <title>Password protected</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -19,11 +19,9 @@
     button:active { transform:translateY(1px); }
     .hidden { display:none; }
     .sp { height:.6rem; }
-    label { display:inline-flex; align-items:center; gap:.4rem; cursor:pointer; }
     .msg { white-space:pre-line; font-size:1.05rem; }
     .err { color:#b00020; margin-top:.4rem; min-height:1.1rem; }
     .correct { color:#16a34a; margin-top:.8rem; }
-    .wrong { color:#b00020; margin-top:.8rem; }
     /* admin feed */
     .admin { margin-top:1rem; border-top:1px dashed #ddd; padding-top:1rem; font-size:.95rem; }
     .feed-row { padding:.3rem 0; border-bottom:1px solid #f2f2f2; }
@@ -45,23 +43,9 @@
       <div class="sp"></div>
 
       <!-- Reveal area -->
-      <div id="reveal" class="hidden">
-        <div class="msg">i think you're cool :)<br>how about a third date?</div>
-        <div class="sp"></div>
-
-        <div class="row">
-          <label><input type="checkbox" id="yes"> yes</label>
-          <label><input type="checkbox" id="no"> no</label>
-        </div>
-
-        <div id="invite" class="hidden msg correct">
-          correct answer!<br>
-          how do board games and dinner sound?
-        </div>
-
-        <div id="wrong" class="hidden msg wrong">
-          wrong answer please try again
-        </div>
+      <div id="reveal" class="hidden msg correct">
+        goodmorning! ☀️<br>
+        I hope you have a nice day and I can't wait for date number 3 tonight!! :)
       </div>
 
       <!-- Optional admin view (only when you open with ?admin=1) -->
@@ -83,44 +67,36 @@
     const pw = document.getElementById('pw');
     const err = document.getElementById('err');
     const reveal = document.getElementById('reveal');
-    const yes = document.getElementById('yes');
-    const no = document.getElementById('no');
-    const invite = document.getElementById('invite');
-    const wrong = document.getElementById('wrong');
 
     const adminFeed = document.getElementById('adminFeed');
     const feedEl = document.getElementById('feed');
 
-    // ---- Helpers ----
     const isAdminMode = () => location.search.includes('admin=1');
 
     function escapeHtml(s){
       return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
 
-    // Send guess to Google Apps Script (append to Sheet)
     function logGuess(guess) {
-      if (!WEBAPP || WEBAPP.includes('WEB_APP_URL_HERE')) return; // not configured yet
+      if (!WEBAPP || WEBAPP.includes('WEB_APP_URL_HERE')) return;
       try {
         fetch(WEBAPP, {
           method: 'POST',
-          mode: 'no-cors',           // works from static hosts without CORS setup
+          mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ guess: guess, ua: navigator.userAgent || '' })
         });
       } catch (_) {}
     }
 
-    // Load recent guesses (JSONP) — only in admin mode
     function loadFeed() {
       if (!WEBAPP || WEBAPP.includes('WEB_APP_URL_HERE')) return;
       const cb = 'feedcb_' + Math.random().toString(36).slice(2);
       window[cb] = function(data) {
         const rows = (data && data.rows) ? data.rows : [];
-        const last = rows.slice(-25).reverse(); // show up to 25 most recent
+        const last = rows.slice(-25).reverse();
         feedEl.innerHTML = last.length ? '' : '<div class="small">No guesses yet.</div>';
         last.forEach(r => {
-          // expected row: [Timestamp, Guess, UA]
           const when = r[0] ? new Date(r[0]).toLocaleString() : '';
           const g = r[1] || '';
           const ua = r[2] || '';
@@ -130,158 +106,6 @@
           feedEl.appendChild(div);
         });
         delete window[cb];
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-  <meta charset="utf-8" />
-  <title>Password protected</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root { --ink:#111; --bg:#fafafa; }
-    html,body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    .wrap { min-height:100vh; display:grid; place-items:center; padding:24px; }
-    .card { width:min(560px, 92vw); background:#fff; border:2px solid #000; border-radius:14px; box-shadow:6px 6px 0 #000; padding:18px 20px; }
-    h1 { margin:0 0 .75rem; font-size:1.1rem; }
-    .row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
-    input[type="text"] { flex:1; min-width:200px; padding:.55rem .7rem; font:inherit; border:1px solid #ccc; border-radius:8px; }
-    textarea { flex:1; min-width:200px; padding:.55rem .7rem; font:inherit; border:1px solid #ccc; border-radius:8px; }
-    button { padding:.55rem .9rem; border:2px solid #000; border-radius:10px; background:#e0f2fe; cursor:pointer; }
-    button:active { transform:translateY(1px); }
-    .hidden { display:none; }
-    .sp { height:.6rem; }
-    .msg { white-space:pre-line; font-size:1.05rem; }
-    .err { color:#b00020; margin-top:.4rem; min-height:1.1rem; }
-    .correct { color:#16a34a; margin-top:.8rem; }
-    /* admin feed */
-    .admin { margin-top:1rem; border-top:1px dashed #ddd; padding-top:1rem; font-size:.95rem; }
-    .feed-row { padding:.3rem 0; border-bottom:1px solid #f2f2f2; }
-    .small { font-size:.85rem; color:#666; }
-    .label { font-size:.95rem; margin-top:.8rem; display:block; }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="card">
-      <h1>password protected</h1>
-
-      <!-- Password area -->
-      <form id="gate" class="row" autocomplete="off">
-        <input id="pw" type="text" placeholder="enter text" />
-        <button type="submit">submit</button>
-      </form>
-      <div id="err" class="err"></div>
-
-      <div class="sp"></div>
-
-      <!-- Reveal area -->
-      <div id="reveal" class="hidden">
-        <div class="msg correct">
-          goodmorning! ☀️<br>
-          I hope you have a nice day and I can't wait for date number 3 tonight!! :)
-        </div>
-
-        <!-- Reply box -->
-        <label for="reply" class="label">reply here:</label>
-        <div class="row" style="align-items:flex-start;">
-          <textarea id="reply" rows="3" placeholder="type anything…"></textarea>
-          <button id="sendReply" type="button">send</button>
-        </div>
-        <div id="replyStatus" class="small" style="margin-top:.4rem;"></div>
-      </div>
-
-      <!-- Optional admin view (only when you open with ?admin=1) -->
-      <div id="adminFeed" class="admin hidden">
-        <div><strong>Recent entries</strong> <span class="small">— visible only in admin mode</span></div>
-        <div id="feed"></div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const SECRET = "chorizo";
-
-    // === Your Apps Script Web App URL ===
-    const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
-
-    const form = document.getElementById('gate');
-    const pw = document.getElementById('pw');
-    const err = document.getElementById('err');
-    const reveal = document.getElementById('reveal');
-
-    const replyEl = document.getElementById('reply');
-    const sendReplyBtn = document.getElementById('sendReply');
-    const replyStatus = document.getElementById('replyStatus');
-
-    const adminFeed = document.getElementById('adminFeed');
-    const feedEl = document.getElementById('feed');
-
-    const isAdminMode = () => location.search.includes('admin=1');
-
-    function escapeHtml(s){
-      return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    }
-
-    // Log a password attempt
-    function logGuess(guess) {
-      if (!WEBAPP) return;
-      try {
-        fetch(WEBAPP, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'guess', guess, ua: navigator.userAgent || '' })
-        });
-      } catch (_) {}
-    }
-
-    // Log a reply message
-    function logReply(text) {
-      if (!WEBAPP) return;
-      try {
-        fetch(WEBAPP, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'reply', reply: text, ua: navigator.userAgent || '' })
-        });
-      } catch (_) {}
-    }
-
-    // Admin feed loader (handles both guesses and replies)
-    function loadFeed() {
-      if (!WEBAPP) return;
-      const cb = 'feedcb_' + Math.random().toString(36).slice(2);
-      window[cb] = function(data) {
-        const rows = (data && data.rows) ? data.rows : [];
-        const last = rows.slice(-50).reverse(); // show most recent 50
-        feedEl.innerHTML = last.length ? '' : '<div class="small">No entries yet.</div>';
-
-        last.forEach(r => {
-          // Two possible formats:
-          // Old: [Timestamp, Guess, UA]
-          // New: [Timestamp, Type, Value, UA]
-          let ts = '', type = 'guess', value = '', ua = '';
-          if (r.length >= 4) {
-            ts = r[0] ? new Date(r[0]).toLocaleString() : '';
-            type = r[1] || 'guess';
-            value = r[2] || '';
-            ua = r[3] || '';
-          } else {
-            ts = r[0] ? new Date(r[0]).toLocaleString() : '';
-            value = r[1] || '';
-            ua = r[2] || '';
-          }
-          const div = document.createElement('div');
-          div.className = 'feed-row';
-          const label = type === 'reply' ? 'Reply' : 'Guess';
-          div.innerHTML = `<strong>${label}:</strong> ${escapeHtml(value)} <span class="small">— ${escapeHtml(ts)}</span><div class="small">${escapeHtml(ua)}</div>`;
-          feedEl.appendChild(div);
-        });
-
-        delete window[cb];
         script.remove();
       };
       const script = document.createElement('script');
@@ -289,7 +113,6 @@
       document.body.appendChild(script);
     }
 
-    // Password submit
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       err.textContent = "";
@@ -301,7 +124,6 @@
       if (v === SECRET.toLowerCase()) {
         reveal.classList.remove('hidden');
         pw.value = "";
-        replyEl.focus();
       } else {
         err.textContent = "nope — try again";
         pw.value = "";
@@ -310,25 +132,6 @@
       if (isAdminMode()) setTimeout(loadFeed, 800);
     });
 
-    // Send reply
-    sendReplyBtn.addEventListener('click', () => {
-      const text = (replyEl.value || '').trim();
-      replyStatus.textContent = '';
-      if (!text) {
-        replyStatus.textContent = 'please type a reply first 🙂';
-        return;
-      }
-      sendReplyBtn.disabled = true;
-      logReply(text);
-      setTimeout(() => {
-        replyStatus.textContent = 'sent! 💌';
-        replyEl.value = '';
-        sendReplyBtn.disabled = false;
-        if (isAdminMode()) loadFeed();
-      }, 700);
-    });
-
-    // Admin mode
     if (isAdminMode()) {
       adminFeed.classList.remove('hidden');
       loadFeed();
