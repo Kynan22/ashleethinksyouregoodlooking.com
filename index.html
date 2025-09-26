@@ -8,14 +8,14 @@
   <title>Password protected</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    :root { --ink:#111; --bg:#fafafa; }
+    :root { --ink:#111; --bg:#fafafa; --card:#fff; --accent:#e0f2fe; --line:#000; }
     html,body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
     .wrap { min-height:100vh; display:grid; place-items:center; padding:24px; }
-    .card { width:min(560px, 92vw); background:#fff; border:2px solid #000; border-radius:14px; box-shadow:6px 6px 0 #000; padding:18px 20px; }
+    .card { width:min(560px, 92vw); background:var(--card); border:2px solid var(--line); border-radius:14px; box-shadow:6px 6px 0 var(--line); padding:18px 20px; }
     h1 { margin:0 0 .75rem; font-size:1.1rem; }
     .row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
-    input[type="text"], textarea { flex:1; min-width:200px; padding:.55rem .7rem; font:inherit; border:1px solid #ccc; border-radius:8px; }
-    button { padding:.55rem .9rem; border:2px solid #000; border-radius:10px; background:#e0f2fe; cursor:pointer; }
+    input[type="text"], textarea { flex:1; min-width:200px; padding:.55rem .7rem; font:inherit; border:1px solid #ccc; border-radius:10px; background:#fff; }
+    button { padding:.55rem .9rem; border:2px solid var(--line); border-radius:12px; background:var(--accent); cursor:pointer; transition:transform .05s ease; }
     button:active { transform:translateY(1px); }
     .hidden { display:none; }
     .sp { height:.6rem; }
@@ -23,16 +23,60 @@
     .err { color:#b00020; margin-top:.4rem; min-height:1.1rem; }
     .note { color:#0f766e; margin-top:.3rem; }
     .correct { color:#16a34a; margin-top:.8rem; }
-    /* admin feed */
     .admin { margin-top:1rem; border-top:1px dashed #ddd; padding-top:1rem; font-size:.95rem; }
     .feed-row { padding:.3rem 0; border-bottom:1px solid #f2f2f2; }
     .small { font-size:.85rem; color:#666; }
     .label { font-size:.95rem; margin-top:.8rem; display:block; }
     .counter { font-size:.9rem; color:#333; padding:0 .4rem; }
-    .counter button { padding:.25rem .5rem; font-size:.8rem; }
-    details.hint-box { margin-top:.4rem; }
+
+    details.hint-box { margin-top:.6rem; }
     details.hint-box summary { cursor:pointer; user-select:none; }
-    details.hint-box > div { margin-top:.35rem; color:#444; font-size:.95rem; }
+    details.hint-box > div { margin-top:.45rem; color:#444; font-size:.95rem; }
+
+    .coupon { display:inline-block; margin-top:.4rem; padding:.35rem .5rem; border:2px dashed var(--line); border-radius:10px; background:#fffdf2; font-weight:700; }
+
+    /* Day 2 – sliding number puzzle (3x3) */
+    :root { --pz: 300px; }
+    @media (max-width:380px){ :root{ --pz: 270px; } }
+    .puzzle { width:var(--pz); height:var(--pz); margin:.6rem 0; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:6px; touch-action:manipulation; }
+    .tile { position:relative; width:100%; height:100%; border-radius:12px; overflow:hidden; border:2px solid var(--line); background:#fff; }
+    .tile.empty { border:2px dashed #bbb; background:transparent; }
+    .tile.num::after {
+      content: attr(data-num);
+      position:absolute; inset:0; display:grid; place-items:center;
+      font-weight:800; font-size:1.25rem; color:#111;
+      background:repeating-linear-gradient(45deg,#f8fafc 0 10px,#eef2f7 10px 20px);
+    }
+    .puzzle button { border:none; background:transparent; padding:0; }
+    .puzzle.solved { opacity:.45; transition:opacity .5s ease; pointer-events:none; }
+
+    /* Day 3 – mini crossword */
+    .cross { display:grid; grid-template-columns: repeat(11, 32px); gap:6px; margin:.6rem 0; } /* 11 columns based on your grid */
+    .cx { width:32px; height:32px; border:2px solid var(--line); border-radius:10px; text-align:center; font-size:1rem; text-transform:uppercase; }
+    .clues { font-size:.92rem; color:#444; margin-top:.25rem; }
+    .blk { width:32px; height:32px; border:2px solid var(--line); border-radius:10px; background:#111; }
+
+    /* --- NEW: wrapper cell + small number labels --- */
+    .cell {
+      position: relative;
+      width:32px; height:32px;
+      border:2px solid var(--line);
+      border-radius:10px;
+      overflow:hidden;
+      display:grid; place-items:center;
+      background:#fff;
+    }
+    .cell input.cx {
+      width:100%; height:100%;
+      border:0; outline:0; text-align:center;
+      font-size:1rem; text-transform:uppercase;
+      background:transparent;
+    }
+    .cell .num {
+      position:absolute; top:2px; left:6px;
+      font-size:.55rem; line-height:1;
+      color:#555; pointer-events:none; user-select:none;
+    }
   </style>
 </head>
 <body>
@@ -42,91 +86,93 @@
 
       <!-- Password area -->
       <form id="gate" class="row" autocomplete="off">
-        <input id="pw" type="text" placeholder="enter text" />
-        <button type="submit">submit</button>
+        <input id="pw" type="text" placeholder="enter text" aria-label="password" />
+        <button type="submit" aria-label="submit password">submit</button>
         <span id="counterWrap" class="counter hidden">
           guesses: <span id="guessCount">0</span>
-          <button id="setCountBtn" type="button" class="hidden">Set count</button>
         </span>
       </form>
-      <div id="err" class="err"></div>
+      <div id="err" class="err" role="status" aria-live="polite"></div>
       <div id="note" class="note"></div>
 
-      <!-- Click-to-reveal hint (shown only for wrong-but-not-old guesses) -->
+      <!-- Click-to-reveal hint (content changes by day) -->
       <details id="hintBox" class="hint-box hidden">
         <summary>hint (tap to reveal)</summary>
-        <div id="hintText"></div>
+        <div id="hintArea"></div>
       </details>
 
       <div class="sp"></div>
 
       <!-- Reveal area -->
       <div id="reveal" class="hidden">
-        <div class="msg correct">
-          goodmorning!<br>
-          I hope you have a nice day and I can't wait for date number 3 tonight!! :)
-        </div>
+        <div id="revealMsg" class="msg correct"></div>
 
         <!-- Reply box -->
         <label for="reply" class="label">reply here:</label>
         <div class="row" style="align-items:flex-start;">
-          <textarea id="reply" rows="3" placeholder="type anything…"></textarea>
+          <textarea id="reply" rows="3" placeholder="type anything…" aria-label="reply"></textarea>
           <button id="sendReply" type="button">send</button>
         </div>
         <div id="replyStatus" class="small" style="margin-top:.4rem;"></div>
       </div>
 
-      <!-- Optional admin view (only when you open with ?admin=1) -->
+      <!-- Optional admin feed -->
       <div id="adminFeed" class="admin hidden">
-        <div><strong>Recent guesses</strong> <span class="small">— visible only in admin mode</span></div>
+        <div><strong>Recent guesses</strong></div>
         <div id="feed"></div>
       </div>
     </div>
   </div>
 
   <script>
-    // ===== Your secrets/messages (unchanged) =====
-    const SECRET = "temppassword98";
+    // === Passwords ===
+    const SECRET = "kissme?";
     const OLDSECRET = "chorizo";
 
-    // ===== Hint settings =====
-    const HINT_START_DATE = "2025-09-26";
-    const HINTS = {
-      1: "hint on day 1? you're better than that",
-      default: "nope. new hint tomorrow."
-    };
+    // === Hints schedule (Melbourne time) ===
+    const HINT_START_DATE = "2025-09-26"; // Day 1 anchor (YYYY-MM-DD)
 
-    // ===== Sheets logging (same as before) =====
+    // === Google Sheets web app (unchanged) ===
     const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
 
-    // ===== Elements =====
+    // === Elements ===
     const form = document.getElementById('gate');
     const pw = document.getElementById('pw');
     const err = document.getElementById('err');
     const note = document.getElementById('note');
     const reveal = document.getElementById('reveal');
-
+    const revealMsg = document.getElementById('revealMsg');
     const replyEl = document.getElementById('reply');
     const sendReplyBtn = document.getElementById('sendReply');
     const replyStatus = document.getElementById('replyStatus');
-
     const adminFeed = document.getElementById('adminFeed');
     const feedEl = document.getElementById('feed');
-
     const counterWrap = document.getElementById('counterWrap');
     const guessCountEl = document.getElementById('guessCount');
-    const setCountBtn = document.getElementById('setCountBtn');
-
     const hintBox = document.getElementById('hintBox');
-    const hintText = document.getElementById('hintText');
+    const hintArea = document.getElementById('hintArea');
 
     const isAdminMode = () => location.search.includes('admin=1');
 
-    // ===== Utils =====
+    // === Utilities ===
     function escapeHtml(s){
       return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
+    function melDateKey(d = new Date()){
+      const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne', year:'numeric', month:'2-digit', day:'2-digit' });
+      return fmt.format(d); // "YYYY-MM-DD"
+    }
+    function getDayNumber(){
+      const start = HINT_START_DATE;
+      const today = melDateKey();
+      const toParts = s => s.split('-').map(n=>parseInt(n,10));
+      const [sy, sm, sd] = toParts(start);
+      const [ty, tm, td] = toParts(today);
+      const a = Date.UTC(sy, sm-1, sd), b = Date.UTC(ty, tm-1, td);
+      return Math.floor((b - a) / 86400000) + 1; // Day 1 on start date
+    }
 
+    // Sheets logger
     function logGuess(guess) {
       if (!WEBAPP) return;
       try {
@@ -139,50 +185,306 @@
       } catch (_) {}
     }
 
-    // Guess counter (stored locally on the device)
+    // Local counters (per-device)
     const COUNT_KEY = 'guess_count';
-    function getGuessCount() {
-      const n = parseInt(localStorage.getItem(COUNT_KEY) || '0', 10);
-      return isNaN(n) ? 0 : n;
-    }
-    function setGuessCount(n) {
-      localStorage.setItem(COUNT_KEY, String(Math.max(0, n|0)));
-      guessCountEl.textContent = localStorage.getItem(COUNT_KEY);
-    }
-    function incGuessCount() {
-      setGuessCount(getGuessCount() + 1);
+    const DAYS_KEY  = 'guess_days';
+    function getGuessCount(){ return parseInt(localStorage.getItem(COUNT_KEY) || '0', 10) || 0; }
+    function setGuessCount(n){ localStorage.setItem(COUNT_KEY, String(n)); guessCountEl.textContent = String(n); }
+    function incGuessCount(){ setGuessCount(getGuessCount() + 1); }
+    function getGuessDays(){ try { return JSON.parse(localStorage.getItem(DAYS_KEY) || '[]'); } catch { return []; } }
+    function addTodayToDays(){ const k=melDateKey(); const arr=getGuessDays(); if(!arr.includes(k)){ arr.push(k); localStorage.setItem(DAYS_KEY, JSON.stringify(arr)); } }
+    function uniqueDaysCount(){ return getGuessDays().length; }
+
+    // ---------- HINT RENDERERS ----------
+    function renderHint(){
+      const day = getDayNumber();
+      hintArea.innerHTML = ''; // clear
+
+      if (day <= 1) {
+        // Day 1: playful text
+        const p = document.createElement('div');
+        p.textContent = "hint on day 1? you're better than that";
+        hintArea.appendChild(p);
+        return;
+      }
+
+      if (day === 2) renderSlidingNumberPuzzle();
+      else if (day >= 3) renderMiniCrossword(); // keep showing from day 3 onwards
     }
 
-    // Day number from start date (uses visitor's local time)
-    function getDayNumber() {
-      const start = new Date(HINT_START_DATE + "T00:00:00");
-      const today = new Date();
-      start.setHours(0,0,0,0);
-      today.setHours(0,0,0,0);
-      const msPerDay = 86400000;
-      const diff = Math.floor((today - start) / msPerDay);
-      return diff + 1; // Day 1 on start date
+    // ---- Day 2: 3x3 sliding NUMBER puzzle ----
+    function renderSlidingNumberPuzzle(){
+      const wrap = document.createElement('div');
+      const intro = document.createElement('div');
+      intro.textContent = "slide the numbered tiles to solve the puzzle and reveal a hint";
+      intro.style.marginBottom = '.4rem';
+
+      const board = document.createElement('div');
+      board.className = 'puzzle';
+
+      // Tiles 0..8, where 8 is empty (we'll display 1..8 on tiles)
+      let tiles = [...Array(9).keys()]; // [0..8]
+      tiles = shuffleSolvable(tiles);
+
+      function draw(){
+        board.innerHTML = '';
+        tiles.forEach((idx) => {
+          const div = document.createElement('button');
+          div.type = 'button';
+          div.className = 'tile';
+          if (idx === 8) {
+            div.classList.add('empty');
+          } else {
+            div.classList.add('num');
+            div.setAttribute('data-num', String(idx + 1)); // 1..8
+          }
+          div.addEventListener('click', () => tryMove(tiles.indexOf(idx)));
+          board.appendChild(div);
+        });
+      }
+
+      function tryMove(pos){
+        const emptyPos = tiles.indexOf(8);
+        const adj = neighbors(emptyPos);
+        if (adj.includes(pos)) {
+          [tiles[pos], tiles[emptyPos]] = [tiles[emptyPos], tiles[pos]];
+          draw();
+          if (isSolved()) {
+            board.classList.add('solved');
+            setTimeout(() => {
+              const msg = document.createElement('div');
+              msg.style.marginTop = '.6rem';
+              msg.innerHTML = "<strong>password is a question (ends with a ?)</strong>";
+              hintArea.appendChild(msg);
+            }, 450);
+          }
+        }
+      }
+
+      function isSolved(){
+        for (let i=0;i<9;i++) if (tiles[i] !== i) return false;
+        return true;
+      }
+
+      function neighbors(emptyPos){
+        const row = Math.floor(emptyPos/3), col = emptyPos%3;
+        const res = [];
+        if (row>0) res.push(emptyPos-3);
+        if (row<2) res.push(emptyPos+3);
+        if (col>0) res.push(emptyPos-1);
+        if (col<2) res.push(emptyPos+1);
+        return res;
+      }
+
+      function shuffleSolvable(a){
+        let arr = a.slice();
+        do {
+          for (let i=arr.length-1;i>0;i--){
+            const j = Math.floor(Math.random()*(i+1));
+            [arr[i],arr[j]]=[arr[j],arr[i]];
+          }
+        } while (!isSolvable(arr));
+        return arr;
+      }
+      function isSolvable(a){
+        // 3x3: solvable if inversion count is even
+        let inv=0;
+        for(let i=0;i<8;i++) for(let j=i+1;j<9;j++){
+          if(a[i]===8 || a[j]===8) continue;
+          if(a[i]>a[j]) inv++;
+        }
+        return inv%2===0;
+      }
+
+      draw();
+      wrap.appendChild(intro);
+      wrap.appendChild(board);
+      hintArea.appendChild(wrap);
     }
-    function getHintText() {
-      const d = getDayNumber();
-      return HINTS[d] || HINTS.default || "";
-    }
-    function showHintDropdown() {
-      const txt = getHintText();
-      if (txt) {
-        hintText.textContent = txt;
-        hintBox.open = false; // closed until clicked
-        hintBox.classList.remove('hidden');
-      } else {
-        hintBox.classList.add('hidden');
+
+    // ---- Day 3+: your custom crossword (no embeds) ----
+    function renderMiniCrossword(){
+      const GRID = [
+        "#######ALDI",
+        "#######R##N",
+        "####COLDEST",
+        "####R##E##E",
+        "###KYNAN##R",
+        "###I######M",
+        "#BISCOFF##E",
+        "#L#S######Z",
+        "GUZMAN#RIZZ",
+        "#E#E######O"
+      ];
+      const ACROSS = [
+        [1, "a great place for churros"],
+        [3, "what toes could be considered"],
+        [4, "your thug crush"],
+        [5, "popular brand bracelet"],
+        [6, "mexican fast food name"],
+        [7, "what this crossword could be considered"]
+      ];
+      const DOWN = [
+        [1, "a location that is always open"],
+        [2, "recently added to a kindle"],
+        [3, "something thats hard for you to do"],
+        [4, "your hint"],
+        [5, "descriptor of 3 across"],
+      ];
+
+      const wrap   = document.createElement('div');
+      const intro  = document.createElement('div');
+      intro.textContent = "goodluck!!";
+      intro.style.marginBottom = '.4rem';
+
+      const gridEl = document.createElement('div');
+      gridEl.className = 'cross';
+
+      const cluesEl = document.createElement('div');
+      cluesEl.className = 'clues';
+
+      const result = document.createElement('div');
+      result.style.marginTop = '.6rem';
+
+      const R = GRID.length;
+      const C = GRID[0].length;
+      for (const row of GRID) if (row.length !== C) throw new Error('All GRID rows must be the same length');
+      const isBlock = (r,c) => GRID[r][c] === '#';
+
+      // Numbering
+      let n = 0;
+      const cellNum = Array.from({length:R},()=>Array(C).fill(0));
+      const acrossStarts = [];
+      const downStarts   = [];
+      for (let r=0;r<R;r++){
+        for (let c=0;c<C;c++){
+          if (isBlock(r,c)) continue;
+          const startA = (c===0 || isBlock(r,c-1));
+          const startD = (r===0 || isBlock(r-1,c));
+          if (startA || startD){
+            n++; cellNum[r][c] = n;
+            if (startA) acrossStarts.push({num:n, r, c});
+            if (startD) downStarts.push({num:n, r, c});
+          }
+        }
+      }
+
+      // Extract true answers from GRID
+      const acrossAns = [];
+      for (const s of acrossStarts){
+        let cc = s.c, text = "";
+        while (cc < C && !isBlock(s.r, cc)) { text += GRID[s.r][cc]; cc++; }
+        acrossAns.push({ num: s.num, r: s.r, c: s.c, ans: text.toUpperCase(), len: text.length });
+      }
+      const downAns = [];
+      for (const s of downStarts){
+        let rr = s.r, text = "";
+        while (rr < R && !isBlock(rr, s.c)) { text += GRID[rr][s.c]; rr++; }
+        downAns.push({ num: s.num, r: s.r, c: s.c, ans: text.toUpperCase(), len: text.length });
+      }
+
+      // Only show multi-letter entries as clues (typical UX)
+      const acrossMulti = acrossAns.filter(x => x.len > 1);
+      const downMulti   = downAns.filter(x => x.len > 1);
+
+      // --- Build cells (with small numbers) ---
+      const inputs = Array.from({length:R},()=>Array(C).fill(null));
+      for (let r=0;r<R;r++){
+        for (let c=0;c<C;c++){
+          if (isBlock(r,c)) {
+            const blk = document.createElement('div');
+            blk.className = 'blk';
+            gridEl.appendChild(blk);
+            continue;
+          }
+
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+
+          const numHere = cellNum[r][c];
+          if (numHere) {
+            const nspan = document.createElement('span');
+            nspan.className = 'num';
+            nspan.textContent = String(numHere);
+            cell.appendChild(nspan);
+          }
+
+          const inp = document.createElement('input');
+          inp.className = 'cx';
+          inp.maxLength = 1;
+          inp.autocomplete = 'off';
+          inp.inputMode = 'latin';
+          inp.setAttribute('aria-label', `Row ${r+1}, Column ${c+1}${numHere ? `, number ${numHere}` : ''}`);
+
+          inp.addEventListener('input', () => {
+            inp.value = inp.value.toUpperCase();
+            // focus-right convenience
+            if (inp.value && c+1<C && !isBlock(r,c+1)) inputs[r][c+1]?.focus();
+            checkSolved();
+          });
+
+          inputs[r][c] = inp;
+          cell.appendChild(inp);
+          gridEl.appendChild(cell);
+        }
+      }
+
+      // Clue text using engine numbering + your clue lists order
+      const acrossHTML = acrossMulti.map((cell, i) => {
+        const clue = ACROSS[i] ? ACROSS[i][1] : '';
+        return `${cell.num}. ${escapeHtml(clue)} (${cell.len})`;
+      }).join('<br>');
+      const downHTML = downMulti.map((cell, i) => {
+        const clue = DOWN[i] ? DOWN[i][1] : '';
+        return `${cell.num}. ${escapeHtml(clue)} (${cell.len})`;
+      }).join('<br>');
+
+      cluesEl.innerHTML =
+        (acrossHTML ? "<strong>Across</strong><br>" + acrossHTML : "") +
+        (downHTML   ? "<br><br><strong>Down</strong><br>" + downHTML : "");
+
+      // Readers
+      function readAcross(r,c){
+        let s="", cc=c;
+        while (cc<C && !isBlock(r,cc)) { s += (inputs[r][cc]?.value || ' ').toUpperCase(); cc++; }
+        return s;
+      }
+      function readDown(r,c){
+        let s="", rr=r;
+        while (rr<R && !isBlock(rr,c)) { s += (inputs[rr][c]?.value || ' ').toUpperCase(); rr++; }
+        return s;
+      }
+
+      function checkSolved(){
+        for (const a of acrossAns){
+          const got = readAcross(a.r, a.c);
+          if (got.length !== a.len || got !== a.ans) { result.textContent = ''; return; }
+        }
+        for (const d of downAns){
+          const got = readDown(d.r, d.c);
+          if (got.length !== d.len || got !== d.ans) { result.textContent = ''; return; }
+        }
+        // All correct
+        result.innerHTML = "<strong>Very Impressed! now use the password :)</strong>";
+      }
+
+      // Mount
+      wrap.appendChild(intro);
+      wrap.appendChild(gridEl);
+      wrap.appendChild(cluesEl);
+      wrap.appendChild(result);
+      hintArea.appendChild(wrap);
+
+      // Focus first open cell
+      outer: for (let r=0;r<R;r++){
+        for (let c=0;c<C;c++){
+          if (GRID[r][c] !== '#') { inputs[r][c].focus(); break outer; }
+        }
       }
     }
-    function hideHintDropdown() {
-      hintBox.classList.add('hidden');
-      hintBox.open = false;
-    }
+    // ---------- end hint renderers ----------
 
-    // ===== Admin feed loader (unchanged) =====
+    // Admin feed
     function loadFeed() {
       if (!WEBAPP) return;
       const cb = 'feedcb_' + Math.random().toString(36).slice(2);
@@ -206,90 +508,70 @@
       document.body.appendChild(script);
     }
 
-    // ===== Init =====
-    // Initialize counter display but keep it hidden until first guess
+    // Init
     setGuessCount(getGuessCount());
     counterWrap.classList.add('hidden');
+    if (isAdminMode()) { adminFeed.classList.remove('hidden'); loadFeed(); }
 
-    if (isAdminMode()) {
-      adminFeed.classList.remove('hidden');
-      loadFeed();
-      // Set count button appears once counter becomes visible (after first guess)
-    }
-
-    // ===== Events =====
-    // Password submit
+    // Form submit
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       err.textContent = "";
       note.textContent = "";
-      hideHintDropdown();
+      hintBox.classList.add('hidden'); // hide hint after submit; will re-open on next wrong
 
-      // Reveal counter after the first interaction
-      if (counterWrap.classList.contains('hidden')) {
-        counterWrap.classList.remove('hidden');
-        if (isAdminMode()) setCountBtn.classList.remove('hidden');
-      }
+      if (counterWrap.classList.contains('hidden')) counterWrap.classList.remove('hidden');
 
       const raw = (pw.value || "").trim();
       const v = raw.toLowerCase();
 
+      // track her local attempts and unique days
+      incGuessCount();
+      addTodayToDays();
+
+      const hereCount = getGuessCount();
+      const hereDays  = uniqueDaysCount();
+
       if (v === SECRET.toLowerCase()) {
-        // correct (doesn't increment)
-        logGuess(`[OK] ${raw}`);
+        logGuess(`[OK][N:${hereCount}] ${raw}`);
+        const msg =
+          `if you say so! :) especially after ${hereCount} ${hereCount===1?'guess':'guesses'} in ${hereDays} ${hereDays===1?'day':'days'}.\n\n` +
+          `use the code below for a free "cuddle and a million kisses" `;
+        revealMsg.innerHTML = escapeHtml(msg) + `<span class="coupon">ASHLEEISVERYCUTE</span>`;
         reveal.classList.remove('hidden');
         pw.value = "";
         replyEl && replyEl.focus();
       } else if (v === OLDSECRET.toLowerCase()) {
-        // old password (increments + logs count)
-        incGuessCount();
-        const n = getGuessCount();
-        logGuess(`[OLD][N:${n}] ${raw}`);
         err.textContent = "you used an old outdated password 🔒 (how embarrasing)";
         pw.value = "";
+        logGuess(`[OLD][N:${hereCount}] ${raw}`);
       } else {
-        // generic wrong (increments + logs count)
-        incGuessCount();
-        const n = getGuessCount();
-        logGuess(`[N:${n}] ${raw}`);
         err.textContent = "not this again amiright?";
-        showHintDropdown();
+        // render and show the current day's hint
+        hintArea.innerHTML = '';
+        renderHint();
+        hintBox.open = false; // closed until she taps
+        hintBox.classList.remove('hidden');
         pw.value = "";
+        logGuess(`[N:${hereCount}] ${raw}`);
       }
 
       if (isAdminMode()) setTimeout(loadFeed, 800);
     });
 
-    // Admin: set counter value (visible after the first guess)
-    setCountBtn.addEventListener('click', () => {
-      const v = prompt("Set guess counter to:", String(getGuessCount()));
-      if (v === null) return;
-      const n = parseInt(v, 10);
-      if (!isNaN(n)) setGuessCount(n);
+    // Reply logging
+    sendReplyBtn.addEventListener('click', () => {
+      const text = (replyEl.value || '').trim();
+      replyStatus.textContent = '';
+      if (!text) { replyStatus.textContent = 'please type a reply first 🙂'; return; }
+      sendReplyBtn.disabled = true;
+      logGuess('[REPLY] ' + text);
+      setTimeout(() => {
+        replyStatus.textContent = 'sent! 💌';
+        replyEl.value = '';
+        sendReplyBtn.disabled = false;
+      }, 700);
     });
-
-    // Send reply -> log as a "guess" prefixed with [REPLY]
-    if (sendReplyBtn) {
-      sendReplyBtn.addEventListener('click', () => {
-        const text = (replyEl.value || '').trim();
-        replyStatus.textContent = '';
-        if (!text) {
-          replyStatus.textContent = 'please type a reply first 🙂';
-          return;
-        }
-        sendReplyBtn.disabled = true;
-
-        // Use same payload format as guesses (no script change)
-        logGuess('[REPLY] ' + text);
-
-        setTimeout(() => {
-          replyStatus.textContent = 'sent! 💌';
-          replyEl.value = '';
-          sendReplyBtn.disabled = false;
-          if (isAdminMode()) loadFeed();
-        }, 700);
-      });
-    }
   </script>
 </body>
 </html>
