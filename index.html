@@ -22,7 +22,6 @@
     .msg { white-space:pre-line; font-size:1.05rem; }
     .err { color:#b00020; margin-top:.4rem; min-height:1.1rem; }
     .note { color:#0f766e; margin-top:.3rem; }
-    .hint { margin-top:.4rem; font-size:.95rem; color:#444; }
     .correct { color:#16a34a; margin-top:.8rem; }
     /* admin feed */
     .admin { margin-top:1rem; border-top:1px dashed #ddd; padding-top:1rem; font-size:.95rem; }
@@ -31,6 +30,9 @@
     .label { font-size:.95rem; margin-top:.8rem; display:block; }
     .counter { font-size:.9rem; color:#333; padding:0 .4rem; }
     .counter button { padding:.25rem .5rem; font-size:.8rem; }
+    details.hint-box { margin-top:.4rem; }
+    details.hint-box summary { cursor:pointer; user-select:none; }
+    details.hint-box > div { margin-top:.35rem; color:#444; font-size:.95rem; }
   </style>
 </head>
 <body>
@@ -42,14 +44,19 @@
       <form id="gate" class="row" autocomplete="off">
         <input id="pw" type="text" placeholder="enter text" />
         <button type="submit">submit</button>
-        <span class="counter">
+        <span id="counterWrap" class="counter hidden">
           guesses: <span id="guessCount">0</span>
           <button id="setCountBtn" type="button" class="hidden">Set count</button>
         </span>
       </form>
       <div id="err" class="err"></div>
       <div id="note" class="note"></div>
-      <div id="hint" class="hint hidden"></div>
+
+      <!-- Click-to-reveal hint (shown only for wrong-but-not-old guesses) -->
+      <details id="hintBox" class="hint-box hidden">
+        <summary>hint (tap to reveal)</summary>
+        <div id="hintText"></div>
+      </details>
 
       <div class="sp"></div>
 
@@ -83,9 +90,7 @@
     const OLDSECRET = "chorizo";
 
     // ===== Hint settings =====
-    // Set the day 1 anchor date (YYYY-MM-DD). Using today's date as default.
     const HINT_START_DATE = "2025-09-26";
-    // Day-numbered hints (1-based). 'default' is used when no exact match.
     const HINTS = {
       1: "hint on day 1? you're better than that",
       default: "nope. new hint tomorrow."
@@ -99,7 +104,6 @@
     const pw = document.getElementById('pw');
     const err = document.getElementById('err');
     const note = document.getElementById('note');
-    const hintEl = document.getElementById('hint');
     const reveal = document.getElementById('reveal');
 
     const replyEl = document.getElementById('reply');
@@ -109,8 +113,12 @@
     const adminFeed = document.getElementById('adminFeed');
     const feedEl = document.getElementById('feed');
 
+    const counterWrap = document.getElementById('counterWrap');
     const guessCountEl = document.getElementById('guessCount');
     const setCountBtn = document.getElementById('setCountBtn');
+
+    const hintBox = document.getElementById('hintBox');
+    const hintText = document.getElementById('hintText');
 
     const isAdminMode = () => location.search.includes('admin=1');
 
@@ -159,14 +167,19 @@
       const d = getDayNumber();
       return HINTS[d] || HINTS.default || "";
     }
-    function showHint() {
+    function showHintDropdown() {
       const txt = getHintText();
       if (txt) {
-        hintEl.textContent = "hint: " + txt;
-        hintEl.classList.remove('hidden');
+        hintText.textContent = txt;
+        hintBox.open = false; // ensure it's closed until clicked
+        hintBox.classList.remove('hidden');
       } else {
-        hintEl.classList.add('hidden');
+        hintBox.classList.add('hidden');
       }
+    }
+    function hideHintDropdown() {
+      hintBox.classList.add('hidden');
+      hintBox.open = false;
     }
 
     // ===== Admin feed loader (unchanged) =====
@@ -193,29 +206,31 @@
       document.body.appendChild(script);
     }
 
-    // ===== Events =====
-    // Initialize counter display
+    // ===== Init =====
+    // Initialize counter display but keep it hidden until first guess
     setGuessCount(getGuessCount());
+    counterWrap.classList.add('hidden');
 
     if (isAdminMode()) {
       adminFeed.classList.remove('hidden');
       loadFeed();
-      // Show Set count button in admin mode
-      setCountBtn.classList.remove('hidden');
-      setCountBtn.addEventListener('click', () => {
-        const v = prompt("Set guess counter to:", String(getGuessCount()));
-        if (v === null) return;
-        const n = parseInt(v, 10);
-        if (!isNaN(n)) setGuessCount(n);
-      });
+      // Show Set count button only when counter is visible
+      // (it will be unhidden after first guess)
     }
 
+    // ===== Events =====
     // Password submit
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       err.textContent = "";
       note.textContent = "";
-      hintEl.classList.add('hidden');
+      hideHintDropdown();
+
+      // Reveal counter after the first interaction
+      if (counterWrap.classList.contains('hidden')) {
+        counterWrap.classList.remove('hidden');
+        if (isAdminMode()) setCountBtn.classList.remove('hidden');
+      }
 
       const raw = (pw.value || "").trim();
       const v = raw.toLowerCase();
@@ -233,27 +248,34 @@
         incGuessCount();
         pw.value = "";
       } else {
-        // generic wrong — increments counter and shows day-based hint
+        // generic wrong — increments counter and shows day-based hint (dropdown)
         err.textContent = "not this again amiright?";
         incGuessCount();
-        showHint();
+        showHintDropdown();
         pw.value = "";
       }
 
       if (isAdminMode()) setTimeout(loadFeed, 800);
     });
 
+    // Admin: set counter value (visible after the first guess)
+    setCountBtn.addEventListener('click', () => {
+      const v = prompt("Set guess counter to:", String(getGuessCount()));
+      if (v === null) return;
+      const n = parseInt(v, 10);
+      if (!isNaN(n)) setGuessCount(n);
+    });
+
     // Send reply -> log as a "guess" prefixed with [REPLY]
-    const sendReplyBtnEl = document.getElementById('sendReply');
-    if (sendReplyBtnEl) {
-      sendReplyBtnEl.addEventListener('click', () => {
+    if (sendReplyBtn) {
+      sendReplyBtn.addEventListener('click', () => {
         const text = (replyEl.value || '').trim();
         replyStatus.textContent = '';
         if (!text) {
           replyStatus.textContent = 'please type a reply first 🙂';
           return;
         }
-        sendReplyBtnEl.disabled = true;
+        sendReplyBtn.disabled = true;
 
         // Use same payload format as guesses (no script change)
         logGuess('[REPLY] ' + text);
@@ -261,7 +283,7 @@
         setTimeout(() => {
           replyStatus.textContent = 'sent! 💌';
           replyEl.value = '';
-          sendReplyBtnEl.disabled = false;
+          sendReplyBtn.disabled = false;
           if (isAdminMode()) loadFeed();
         }, 700);
       });
