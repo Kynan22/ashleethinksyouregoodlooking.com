@@ -69,6 +69,7 @@
 
   <script>
     const SECRET = "temppassword98";
+    const OLDSECRET = "chorizo";
 
     // Your existing Apps Script Web App URL (unchanged)
     const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
@@ -143,8 +144,12 @@
         reveal.classList.remove('hidden');
         pw.value = "";
         replyEl.focus();
-      } else {
+      }else if(v === OLDSECRET.toLowerCase()){
         err.textContent = "you used an old outdated password 🔒 (how embarrasing)";
+        pw.value = "";
+      }
+      else {
+        err.textContent = "not this again amiright?";
         pw.value = "";
       }
 
