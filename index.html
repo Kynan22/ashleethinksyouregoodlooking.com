@@ -171,7 +171,7 @@
       const txt = getHintText();
       if (txt) {
         hintText.textContent = txt;
-        hintBox.open = false; // ensure it's closed until clicked
+        hintBox.open = false; // closed until clicked
         hintBox.classList.remove('hidden');
       } else {
         hintBox.classList.add('hidden');
@@ -214,8 +214,7 @@
     if (isAdminMode()) {
       adminFeed.classList.remove('hidden');
       loadFeed();
-      // Show Set count button only when counter is visible
-      // (it will be unhidden after first guess)
+      // Set count button appears once counter becomes visible (after first guess)
     }
 
     // ===== Events =====
@@ -235,22 +234,25 @@
       const raw = (pw.value || "").trim();
       const v = raw.toLowerCase();
 
-      // log password attempt
-      logGuess(raw);
-
       if (v === SECRET.toLowerCase()) {
+        // correct (doesn't increment)
+        logGuess(`[OK] ${raw}`);
         reveal.classList.remove('hidden');
         pw.value = "";
         replyEl && replyEl.focus();
       } else if (v === OLDSECRET.toLowerCase()) {
-        // old password path — increments counter, but no hint
-        err.textContent = "you used an old outdated password 🔒 (how embarrasing)";
+        // old password (increments + logs count)
         incGuessCount();
+        const n = getGuessCount();
+        logGuess(`[OLD][N:${n}] ${raw}`);
+        err.textContent = "you used an old outdated password 🔒 (how embarrasing)";
         pw.value = "";
       } else {
-        // generic wrong — increments counter and shows day-based hint (dropdown)
-        err.textContent = "not this again amiright?";
+        // generic wrong (increments + logs count)
         incGuessCount();
+        const n = getGuessCount();
+        logGuess(`[N:${n}] ${raw}`);
+        err.textContent = "not this again amiright?";
         showHintDropdown();
         pw.value = "";
       }
