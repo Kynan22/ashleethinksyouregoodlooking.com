@@ -1,1 +1,156 @@
-<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8" /> <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <title>Maintenance Mode</title> <style> :root { --bg:#111; --ink:#eee; --warn:#e33; --card:#222; --muted:#999; --line:#e33; } * { box-sizing:border-box; } html, body { height:100%; } body { margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:"Courier New", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; display:flex; align-items:center; justify-content:center; text-align:center; } .scene { width:min(520px, 92vw); perspective:1000px; } /* FIX: clip contents within red outline on mobile */ .card { position:relative; border-radius:10px; outline:2px solid var(--line); box-shadow:0 0 12px var(--warn); overflow:hidden; /* <- added */ } .card-inner { position:relative; width:100%; transform-style:preserve-3d; transition: transform .6s cubic-bezier(.2,.8,.2,1); border-radius:10px; /* <- added */ overflow:hidden; /* <- added */ } @media (prefers-reduced-motion: reduce) { .card-inner { transition:none; } } .face { position:relative; padding:2rem; background:var(--card); border-radius:8px; min-height:280px; display:flex; flex-direction:column; align-items:center; justify-content:center; backface-visibility:hidden; /* safety */ -webkit-backface-visibility:hidden; /* iOS safety */ width:100%; /* ensure no accidental expansion */ } .back-face { position:absolute; inset:0; transform:rotateY(180deg); } h1 { margin:0 0 1rem; font-size:1.4rem; color:var(--warn); text-transform:uppercase; letter-spacing:2px; } p { margin:.5rem 0; font-size:1rem; line-height:1.5; } .muted { color:var(--muted); font-size:.9rem; } .blinker { color:var(--warn); animation:blink 1s infinite; } @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} } .egg { position:absolute; width:1px; height:1px; margin:-1px; border:0; padding:0; clip:rect(0 0 0 0); clip-path:inset(50%); overflow:hidden; white-space:nowrap; } .trigger { position:relative; display:inline-block; cursor:pointer; color:#eee; text-decoration:underline dotted; } .trigger:focus-visible { outline:2px dashed var(--warn); outline-offset:2px; border-radius:4px; } #egg:checked ~ .scene .card-inner { transform:rotateY(180deg); } .btn { display:inline-block; margin-top:1rem; padding:.6rem .9rem; border:2px solid var(--warn); border-radius:10px; color:var(--ink); text-decoration:none; font-weight:bold; } .btn:active { transform: translateY(1px) scale(.99); } /* Back-face layout with cat pic */ .back-grid { width:100%; display:grid; grid-template-columns: 1fr; gap:14px; align-items:center; text-align:left; } .back-left { text-align:left; } .cat-figure { margin:0; display:flex; flex-direction:column; align-items:center; gap:.35rem; } .cat { width:100%; max-width:220px; height:auto; border-radius:12px; border:2px solid var(--line); box-shadow:0 2px 10px rgba(0,0,0,.25); } .cat-cap { color:var(--muted); font-size:.85rem; text-align:center; } @media (min-width:560px) { .back-grid { grid-template-columns: 1.3fr .9fr; } } @media (max-width:420px) { h1 { font-size:1.2rem; } } </style> </head> <body> <!-- Secret toggle --> <input id="egg" class="egg" type="checkbox" aria-hidden="true" /> <div class="scene" role="region" aria-label="Maintenance status"> <div class="card"> <div class="card-inner" aria-live="polite"> <!-- FRONT --> <section class="face front-face" aria-label="Maintenance notice"> <h1>System Maintenance</h1> <p><span class="blinker">⚠</span> This site is temporarily down for scheduled upgrades.</p> <p> Please check <label for="egg" class="trigger" title="(literally) check back">back</label> soon… </p> <p class="muted" style="margin-top:1rem"> this process is sped up by thug crush admission </p> </section> <!-- BACK --> <section class="face back-face" aria-label="Secret message"> <div class="back-grid"> <div class="back-left"> <h1>Easter Egg Discovered</h1> <p>✅ Back Checked<br>Taking it literally paid off</p> <p class="muted">cool date plan coming soon..</p> <a class="btn" href="#" id="foundBtn">Found it!</a> </div> <figure class="cat-figure"> <img src="giz.jpg" alt="Giz the cat saying hi" class="cat" /> <figcaption class="cat-cap">giz says hi 👋</figcaption> </figure> </div> </section> </div> </div> </div> <script> const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec'; (function(){ const egg = document.getElementById('egg'); let timer; egg.addEventListener('change', () => { clearTimeout(timer); if (egg.checked) timer = setTimeout(() => (egg.checked = false), 12000); }, {passive:true}); })(); document.getElementById('foundBtn').addEventListener('click', (e) => { e.preventDefault(); try { fetch(WEBAPP, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ guess:"[FOUND_EGG]", ua:navigator.userAgent }) }); } catch(_){} }); </script> </body> </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Maintenance Mode</title>
+  <style>
+    :root { --bg:#111; --ink:#eee; --warn:#e33; --card:#222; --muted:#999; --line:#e33; }
+    * { box-sizing:border-box; }
+    html, body { height:100%; }
+    body {
+      margin:0; padding:0; background:var(--bg); color:var(--ink);
+      font-family:"Courier New", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      display:flex; align-items:center; justify-content:center; text-align:center;
+    }
+
+    .scene { width:min(520px, 92vw); perspective:1000px; }
+
+    .card {
+      position:relative; border-radius:10px; outline:2px solid var(--line);
+      box-shadow:0 0 12px var(--warn);
+      overflow:hidden; /* keep content inside the red outline */
+      transform-style:preserve-3d;               /* FIX: iOS 3D pipeline */
+      -webkit-transform-style:preserve-3d;       /* FIX */
+    }
+
+    .card-inner {
+      position:relative; width:100%;
+      transform-style:preserve-3d;               /* FIX */
+      -webkit-transform-style:preserve-3d;       /* FIX */
+      transition: transform .6s cubic-bezier(.2,.8,.2,1);
+      border-radius:10px;
+      overflow:hidden;
+      will-change: transform;                    /* smooth on mobile */
+    }
+
+    @media (prefers-reduced-motion: reduce) { .card-inner { transition:none; } }
+
+    .face {
+      position:relative; padding:2rem; background:var(--card); border-radius:8px;
+      min-height:280px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      backface-visibility:hidden;
+      -webkit-backface-visibility:hidden;        /* FIX: iOS */
+      width:100%;
+    }
+
+    .front-face { transform: rotateY(0deg); }     /* FIX: explicit state */
+    .back-face  { position:absolute; inset:0; transform: rotateY(180deg); } /* already rotated */
+
+    h1 { margin:0 0 1rem; font-size:1.4rem; color:var(--warn); text-transform:uppercase; letter-spacing:2px; }
+    p { margin:.5rem 0; font-size:1rem; line-height:1.5; }
+    .muted { color:var(--muted); font-size:.9rem; }
+    .blinker { color:var(--warn); animation:blink 1s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
+
+    .egg { position:absolute; width:1px; height:1px; margin:-1px; border:0; padding:0; clip:rect(0 0 0 0); clip-path:inset(50%); overflow:hidden; white-space:nowrap; }
+    .trigger { position:relative; display:inline-block; cursor:pointer; color:#eee; text-decoration:underline dotted; }
+    .trigger:focus-visible { outline:2px dashed var(--warn); outline-offset:2px; border-radius:4px; }
+
+    /* Flip */
+    #egg:checked ~ .scene .card-inner { transform:rotateY(180deg); }
+
+    .btn { display:inline-block; margin-top:1rem; padding:.6rem .9rem; border:2px solid var(--warn);
+           border-radius:10px; color:var(--ink); text-decoration:none; font-weight:bold; }
+    .btn:active { transform: translateY(1px) scale(.99); }
+
+    /* Back-face layout with cat pic */
+    .back-grid {
+      width:100%;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+      align-items:center;
+      text-align:left;
+    }
+    .back-left { text-align:left; }
+    .cat-figure { margin:0; display:flex; flex-direction:column; align-items:center; gap:.35rem; }
+    .cat {
+      width:100%; max-width:220px; height:auto;
+      border-radius:12px; border:2px solid var(--line);
+      box-shadow:0 2px 10px rgba(0,0,0,.25);
+      display:block;
+    }
+    .cat-cap { color:var(--muted); font-size:.85rem; text-align:center; }
+
+    @media (min-width:560px) {
+      .back-grid { grid-template-columns: 1.3fr .9fr; }
+    }
+
+    @media (max-width:420px) {
+      h1 { font-size:1.2rem; }
+      .face { padding:1.25rem; }                 /* optional: tighter on tiny phones */
+    }
+  </style>
+</head>
+<body>
+  <!-- Secret toggle -->
+  <input id="egg" class="egg" type="checkbox" aria-hidden="true" />
+
+  <div class="scene" role="region" aria-label="Maintenance status">
+    <div class="card">
+      <div class="card-inner" aria-live="polite">
+        <!-- FRONT -->
+        <section class="face front-face" aria-label="Maintenance notice">
+          <h1>System Maintenance</h1>
+          <p><span class="blinker">⚠</span> This site is temporarily down for scheduled upgrades.</p>
+          <p> Please check <label for="egg" class="trigger" title="(literally) check back">back</label> soon… </p>
+          <p class="muted" style="margin-top:1rem"> this process is sped up by thug crush admission </p>
+        </section>
+
+        <!-- BACK -->
+        <section class="face back-face" aria-label="Secret message">
+          <div class="back-grid">
+            <div class="back-left">
+              <h1>Easter Egg Discovered</h1>
+              <p>✅ Back Checked<br>Taking it literally paid off</p>
+              <p class="muted">cool date plan coming soon..</p>
+              <a class="btn" href="#" id="foundBtn">Found it!</a>
+            </div>
+
+            <figure class="cat-figure">
+              <img src="giz.jpg" alt="Giz the cat saying hi" class="cat" />
+              <figcaption class="cat-cap">giz says hi 👋</figcaption>
+            </figure>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
+
+    (function(){
+      const egg = document.getElementById('egg');
+      let timer;
+      egg.addEventListener('change', () => {
+        clearTimeout(timer);
+        if (egg.checked) timer = setTimeout(() => (egg.checked = false), 12000);
+      }, {passive:true});
+    })();
+
+    document.getElementById('foundBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      try {
+        fetch(WEBAPP, {
+          method:'POST',
+          mode:'no-cors',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ guess:"[FOUND_EGG]", ua:navigator.userAgent })
+        });
+      } catch(_){}
+    });
+  </script>
+</body>
+</html>
