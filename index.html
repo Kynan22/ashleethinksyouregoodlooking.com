@@ -13,30 +13,39 @@
       font-family:"Courier New", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       display:flex; align-items:center; justify-content:center; text-align:center;
     }
+
     .scene { width:min(520px, 92vw); perspective:1000px; }
 
-    /* FIX: clip contents within red outline on mobile */
     .card {
       position:relative; border-radius:10px; outline:2px solid var(--line);
       box-shadow:0 0 12px var(--warn);
-      overflow:hidden; /* <- added */
+      overflow:hidden; /* keep content inside the red outline */
+      transform-style:preserve-3d;               /* FIX: iOS 3D pipeline */
+      -webkit-transform-style:preserve-3d;       /* FIX */
     }
+
     .card-inner {
-      position:relative; width:100%; transform-style:preserve-3d;
+      position:relative; width:100%;
+      transform-style:preserve-3d;               /* FIX */
+      -webkit-transform-style:preserve-3d;       /* FIX */
       transition: transform .6s cubic-bezier(.2,.8,.2,1);
-      border-radius:10px;            /* <- added */
-      overflow:hidden;               /* <- added */
+      border-radius:10px;
+      overflow:hidden;
+      will-change: transform;                    /* smooth on mobile */
     }
+
     @media (prefers-reduced-motion: reduce) { .card-inner { transition:none; } }
 
     .face {
       position:relative; padding:2rem; background:var(--card); border-radius:8px;
       min-height:280px; display:flex; flex-direction:column; align-items:center; justify-content:center;
-      backface-visibility:hidden;            /* safety */
-      -webkit-backface-visibility:hidden;    /* iOS safety */
-      width:100%;                             /* ensure no accidental expansion */
+      backface-visibility:hidden;
+      -webkit-backface-visibility:hidden;        /* FIX: iOS */
+      width:100%;
     }
-    .back-face { position:absolute; inset:0; transform:rotateY(180deg); }
+
+    .front-face { transform: rotateY(0deg); }     /* FIX: explicit state */
+    .back-face  { position:absolute; inset:0; transform: rotateY(180deg); } /* already rotated */
 
     h1 { margin:0 0 1rem; font-size:1.4rem; color:var(--warn); text-transform:uppercase; letter-spacing:2px; }
     p { margin:.5rem 0; font-size:1rem; line-height:1.5; }
@@ -47,6 +56,8 @@
     .egg { position:absolute; width:1px; height:1px; margin:-1px; border:0; padding:0; clip:rect(0 0 0 0); clip-path:inset(50%); overflow:hidden; white-space:nowrap; }
     .trigger { position:relative; display:inline-block; cursor:pointer; color:#eee; text-decoration:underline dotted; }
     .trigger:focus-visible { outline:2px dashed var(--warn); outline-offset:2px; border-radius:4px; }
+
+    /* Flip */
     #egg:checked ~ .scene .card-inner { transform:rotateY(180deg); }
 
     .btn { display:inline-block; margin-top:1rem; padding:.6rem .9rem; border:2px solid var(--warn);
@@ -68,13 +79,18 @@
       width:100%; max-width:220px; height:auto;
       border-radius:12px; border:2px solid var(--line);
       box-shadow:0 2px 10px rgba(0,0,0,.25);
+      display:block;
     }
     .cat-cap { color:var(--muted); font-size:.85rem; text-align:center; }
 
     @media (min-width:560px) {
       .back-grid { grid-template-columns: 1.3fr .9fr; }
     }
-    @media (max-width:420px) { h1 { font-size:1.2rem; } }
+
+    @media (max-width:420px) {
+      h1 { font-size:1.2rem; }
+      .face { padding:1.25rem; }                 /* optional: tighter on tiny phones */
+    }
   </style>
 </head>
 <body>
