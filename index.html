@@ -18,20 +18,32 @@
     .card {
       position:relative; border-radius:10px; outline:2px solid var(--line); box-shadow:0 0 12px var(--warn);
       overflow:hidden;
+      /* Give the flip a definite box on small screens so Safari knows what to render */
     }
+    /* Set an explicit height on small screens so the taller back (with the cat) fits */
+    @media (max-width:560px){
+      .card { height: 520px; } /* tweak to fit your cat; 520–560px usually perfect */
+    }
+
     .card-inner {
-      position:relative; width:100%; transform-style:preserve-3d;
+      position:relative; width:100%;
+      transform-style:preserve-3d; -webkit-transform-style:preserve-3d;
       transition: transform .6s cubic-bezier(.2,.8,.2,1);
       border-radius:10px; overflow:hidden;
+      will-change: transform;
     }
     @media (prefers-reduced-motion: reduce) { .card-inner { transition:none; } }
 
+    /* Faces: fully overlap, each is one side of the card */
     .face {
-      position:relative; padding:2rem; background:var(--card); border-radius:8px;
-      min-height:280px; display:flex; flex-direction:column; align-items:center; justify-content:center;
-      backface-visibility:hidden; -webkit-backface-visibility:hidden; width:100%;
+      position:absolute; inset:0;           /* <-- overlap perfectly */
+      padding:2rem; background:var(--card);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      backface-visibility:hidden; -webkit-backface-visibility:hidden;
+      transform: rotateY(0deg);
     }
-    .back-face { position:absolute; inset:0; transform:rotateY(180deg); }
+    .front-face { transform: rotateY(0deg); }
+    .back-face  { transform: rotateY(180deg); }
 
     h1 { margin:0 0 1rem; font-size:1.4rem; color:var(--warn); text-transform:uppercase; letter-spacing:2px; }
     p { margin:.5rem 0; font-size:1rem; line-height:1.5; }
@@ -42,6 +54,8 @@
     .egg { position:absolute; width:1px; height:1px; margin:-1px; border:0; padding:0; clip:rect(0 0 0 0); clip-path:inset(50%); overflow:hidden; white-space:nowrap; }
     .trigger { position:relative; display:inline-block; cursor:pointer; color:#eee; text-decoration:underline dotted; }
     .trigger:focus-visible { outline:2px dashed var(--warn); outline-offset:2px; border-radius:4px; }
+
+    /* Flip */
     #egg:checked ~ .scene .card-inner { transform:rotateY(180deg); }
 
     .btn { display:inline-block; margin-top:1rem; padding:.6rem .9rem; border:2px solid var(--warn);
@@ -51,6 +65,7 @@
     /* Back-face layout with cat pic */
     .back-grid {
       width:100%;
+      height:100%;                 /* fill the card height */
       display:grid;
       grid-template-columns: 1fr;
       gap:14px;
@@ -63,23 +78,16 @@
       width:100%; max-width:220px; height:auto;
       border-radius:12px; border:2px solid var(--line);
       box-shadow:0 2px 10px rgba(0,0,0,.25);
+      display:block;
     }
     .cat-cap { color:var(--muted); font-size:.85rem; text-align:center; }
 
     @media (min-width:560px) {
       .back-grid { grid-template-columns: 1.3fr .9fr; }
     }
-
-    /* ADDED: Make the front at least as tall as the back on small screens */
-    @media (max-width:480px) {
-      .front-face { min-height: 460px; } /* adjust if your cat image is taller */
-    }
-
-    /* ADDED (optional): Slightly smaller cat on very small phones */
-    @media (max-width:360px) {
-      .face { padding: 1.25rem; }
-      .cat { max-width: 180px; }
+    @media (max-width:420px) {
       h1 { font-size:1.2rem; }
+      .face { padding:1.25rem; }
     }
   </style>
 </head>
@@ -107,7 +115,6 @@
               <p class="muted">cool date plan coming soon..</p>
               <a class="btn" href="#" id="foundBtn">Found it!</a>
             </div>
-
             <figure class="cat-figure">
               <img src="giz.jpg" alt="Giz the cat saying hi" class="cat" />
               <figcaption class="cat-cap">giz says hi 👋</figcaption>
