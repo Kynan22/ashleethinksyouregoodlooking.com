@@ -1,576 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-  <meta charset="utf-8" />
-  <title>Password protected</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Maintenance Mode</title>
   <style>
-    :root { --ink:#111; --bg:#fafafa; --card:#fff; --accent:#e0f2fe; --line:#000; }
-    html,body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    .wrap { min-height:100vh; display:grid; place-items:center; padding:24px; }
-    .card { width:min(560px, 92vw); background:var(--card); border:2px solid var(--line); border-radius:14px; box-shadow:6px 6px 0 var(--line); padding:18px 20px; }
-    h1 { margin:0 0 .75rem; font-size:1.1rem; }
-    .row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
-    input[type="text"], textarea { flex:1; min-width:200px; padding:.55rem .7rem; font:inherit; border:1px solid #ccc; border-radius:10px; background:#fff; }
-    button { padding:.55rem .9rem; border:2px solid var(--line); border-radius:12px; background:var(--accent); cursor:pointer; transition:transform .05s ease; }
-    button:active { transform:translateY(1px); }
-    .hidden { display:none; }
-    .sp { height:.6rem; }
-    .msg { white-space:pre-line; font-size:1.05rem; }
-    .err { color:#b00020; margin-top:.4rem; min-height:1.1rem; }
-    .note { color:#0f766e; margin-top:.3rem; }
-    .correct { color:#16a34a; margin-top:.8rem; }
-    .admin { margin-top:1rem; border-top:1px dashed #ddd; padding-top:1rem; font-size:.95rem; }
-    .feed-row { padding:.3rem 0; border-bottom:1px solid #f2f2f2; }
-    .small { font-size:.85rem; color:#666; }
-    .label { font-size:.95rem; margin-top:.8rem; display:block; }
-    .counter { font-size:.9rem; color:#333; padding:0 .4rem; }
-
-    details.hint-box { margin-top:.6rem; }
-    details.hint-box summary { cursor:pointer; user-select:none; }
-    details.hint-box > div { margin-top:.45rem; color:#444; font-size:.95rem; }
-
-    .coupon { display:inline-block; margin-top:.4rem; padding:.35rem .5rem; border:2px dashed var(--line); border-radius:10px; background:#fffdf2; font-weight:700; }
-
-    /* Day 2 – sliding number puzzle (3x3) */
-    :root { --pz: 300px; }
-    @media (max-width:380px){ :root{ --pz: 270px; } }
-    .puzzle { width:var(--pz); height:var(--pz); margin:.6rem 0; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:6px; touch-action:manipulation; }
-    .tile { position:relative; width:100%; height:100%; border-radius:12px; overflow:hidden; border:2px solid var(--line); background:#fff; }
-    .tile.empty { border:2px dashed #bbb; background:transparent; }
-    .tile.num::after {
-      content: attr(data-num);
-      position:absolute; inset:0; display:grid; place-items:center;
-      font-weight:800; font-size:1.25rem; color:#111;
-      background:repeating-linear-gradient(45deg,#f8fafc 0 10px,#eef2f7 10px 20px);
+    :root { --bg:#111; --ink:#eee; --warn:#e33; --card:#222; --muted:#999; --line:#e33; }
+    * { box-sizing:border-box; }
+    html, body { height:100%; }
+    body {
+      margin:0; padding:0; background:var(--bg); color:var(--ink);
+      font-family:"Courier New", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      display:flex; align-items:center; justify-content:center; text-align:center;
     }
-    .puzzle button { border:none; background:transparent; padding:0; }
-    .puzzle.solved { opacity:.45; transition:opacity .5s ease; pointer-events:none; }
+    .scene { width:min(520px, 92vw); perspective:1000px; }
+    .card { position:relative; border-radius:10px; outline:2px solid var(--line); box-shadow:0 0 12px var(--warn); }
+    .card-inner { position:relative; width:100%; transform-style:preserve-3d; transition: transform .6s cubic-bezier(.2,.8,.2,1); }
+    @media (prefers-reduced-motion: reduce) { .card-inner { transition:none; } }
+    .face { position:relative; padding:2rem; background:var(--card); border-radius:8px; min-height:280px;
+            display:flex; flex-direction:column; align-items:center; justify-content:center; backface-visibility:hidden; }
+    .back-face { position:absolute; inset:0; transform:rotateY(180deg); }
 
-    /* Day 3 – mini crossword */
-    .cross { display:grid; grid-template-columns: repeat(11, 32px); gap:6px; margin:.6rem 0; } /* 11 columns based on your grid */
-    .cx { width:32px; height:32px; border:2px solid var(--line); border-radius:10px; text-align:center; font-size:1rem; text-transform:uppercase; }
-    .clues { font-size:.92rem; color:#444; margin-top:.25rem; }
-    .blk { width:32px; height:32px; border:2px solid var(--line); border-radius:10px; background:#111; }
+    h1 { margin:0 0 1rem; font-size:1.4rem; color:var(--warn); text-transform:uppercase; letter-spacing:2px; }
+    p { margin:.5rem 0; font-size:1rem; line-height:1.5; }
+    .muted { color:var(--muted); font-size:.9rem; }
+    .blinker { color:var(--warn); animation:blink 1s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
 
-    /* --- NEW: wrapper cell + small number labels --- */
-    .cell {
-      position: relative;
-      width:32px; height:32px;
+    .egg { position:absolute; width:1px; height:1px; margin:-1px; border:0; padding:0; clip:rect(0 0 0 0); clip-path:inset(50%); overflow:hidden; white-space:nowrap; }
+    .trigger { position:relative; display:inline-block; cursor:pointer; color:#eee; text-decoration:underline dotted; }
+    .trigger:focus-visible { outline:2px dashed var(--warn); outline-offset:2px; border-radius:4px; }
+    #egg:checked ~ .scene .card-inner { transform:rotateY(180deg); }
+
+    .btn { display:inline-block; margin-top:1rem; padding:.6rem .9rem; border:2px solid var(--warn);
+           border-radius:10px; color:var(--ink); text-decoration:none; font-weight:bold; }
+    .btn:active { transform: translateY(1px) scale(.99); }
+
+    /* Back-face layout with cat pic */
+    .back-grid {
+      width:100%;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+      align-items:center;
+      text-align:left;
+    }
+    .back-left { text-align:left; }
+    .cat-figure {
+      margin:0;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:.35rem;
+    }
+    .cat {
+      width:100%;
+      max-width:220px;
+      height:auto;
+      border-radius:12px;
       border:2px solid var(--line);
-      border-radius:10px;
-      overflow:hidden;
-      display:grid; place-items:center;
-      background:#fff;
+      box-shadow:0 2px 10px rgba(0,0,0,.25);
     }
-    .cell input.cx {
-      width:100%; height:100%;
-      border:0; outline:0; text-align:center;
-      font-size:1rem; text-transform:uppercase;
-      background:transparent;
+    .cat-cap { color:var(--muted); font-size:.85rem; text-align:center; }
+
+    @media (min-width:560px) {
+      .back-grid {
+        grid-template-columns: 1.3fr .9fr;
+        text-align:left;
+      }
     }
-    .cell .num {
-      position:absolute; top:2px; left:6px;
-      font-size:.55rem; line-height:1;
-      color:#555; pointer-events:none; user-select:none;
+
+    @media (max-width:420px) {
+      h1 { font-size:1.2rem; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <!-- Secret toggle -->
+  <input id="egg" class="egg" type="checkbox" aria-hidden="true" />
+
+  <div class="scene" role="region" aria-label="Maintenance status">
     <div class="card">
-      <h1>password protected</h1>
+      <div class="card-inner" aria-live="polite">
+        <!-- FRONT -->
+        <section class="face front-face" aria-label="Maintenance notice">
+          <h1>System Maintenance</h1>
+          <p><span class="blinker">⚠</span> This site is temporarily down for scheduled upgrades.</p>
+          <p> Please check <label for="egg" class="trigger" title="(literally) check back">back</label> soon… </p>
+          <p class="muted" style="margin-top:1rem"> this process is sped up by thug crush admission </p>
+        </section>
 
-      <!-- Password area -->
-      <form id="gate" class="row" autocomplete="off">
-        <input id="pw" type="text" placeholder="enter text" aria-label="password" />
-        <button type="submit" aria-label="submit password">submit</button>
-        <span id="counterWrap" class="counter hidden">
-          guesses: <span id="guessCount">0</span>
-        </span>
-      </form>
-      <div id="err" class="err" role="status" aria-live="polite"></div>
-      <div id="note" class="note"></div>
+        <!-- BACK -->
+        <section class="face back-face" aria-label="Secret message">
+          <div class="back-grid">
+            <div class="back-left">
+              <h1>Easter Egg Discovered</h1>
+              <p>✅ Back Checked<br>Taking it literally paid off</p>
+              <p class="muted">cool date plan coming soon..</p>
+              <a class="btn" href="#" id="foundBtn">Found it!</a>
+            </div>
 
-      <!-- Click-to-reveal hint (content changes by day) -->
-      <details id="hintBox" class="hint-box hidden">
-        <summary>hint (tap to reveal)</summary>
-        <div id="hintArea"></div>
-      </details>
-
-      <div class="sp"></div>
-
-      <!-- Reveal area -->
-      <div id="reveal" class="hidden">
-        <div id="revealMsg" class="msg correct"></div>
-
-        <!-- Reply box -->
-        <label for="reply" class="label">reply here:</label>
-        <div class="row" style="align-items:flex-start;">
-          <textarea id="reply" rows="3" placeholder="type anything…" aria-label="reply"></textarea>
-          <button id="sendReply" type="button">send</button>
-        </div>
-        <div id="replyStatus" class="small" style="margin-top:.4rem;"></div>
-      </div>
-
-      <!-- Optional admin feed -->
-      <div id="adminFeed" class="admin hidden">
-        <div><strong>Recent guesses</strong></div>
-        <div id="feed"></div>
+            <figure class="cat-figure">
+              <!-- Your cat photo next to index.html -->
+              <img src="giz.jpg" alt="Giz the cat saying hi" class="cat" />
+              <figcaption class="cat-cap">giz says hi 👋</figcaption>
+            </figure>
+          </div>
+        </section>
       </div>
     </div>
   </div>
 
   <script>
-    // === Passwords ===
-    const SECRET = "kissme?";
-    const OLDSECRET = "chorizo";
-
-    // === Hints schedule (Melbourne time) ===
-    const HINT_START_DATE = "2025-09-26"; // Day 1 anchor (YYYY-MM-DD)
-
-    // === Google Sheets web app (unchanged) ===
+    // Google Sheets Apps Script URL (same one you already use for guesses)
     const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
 
-    // === Elements ===
-    const form = document.getElementById('gate');
-    const pw = document.getElementById('pw');
-    const err = document.getElementById('err');
-    const note = document.getElementById('note');
-    const reveal = document.getElementById('reveal');
-    const revealMsg = document.getElementById('revealMsg');
-    const replyEl = document.getElementById('reply');
-    const sendReplyBtn = document.getElementById('sendReply');
-    const replyStatus = document.getElementById('replyStatus');
-    const adminFeed = document.getElementById('adminFeed');
-    const feedEl = document.getElementById('feed');
-    const counterWrap = document.getElementById('counterWrap');
-    const guessCountEl = document.getElementById('guessCount');
-    const hintBox = document.getElementById('hintBox');
-    const hintArea = document.getElementById('hintArea');
+    // Auto-unflip after 12s so it still looks like maintenance later
+    (function(){
+      const egg = document.getElementById('egg');
+      let timer;
+      egg.addEventListener('change', () => {
+        clearTimeout(timer);
+        if (egg.checked) timer = setTimeout(() => (egg.checked = false), 12000);
+      }, {passive:true});
+    })();
 
-    const isAdminMode = () => location.search.includes('admin=1');
-
-    // === Utilities ===
-    function escapeHtml(s){
-      return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    }
-    function melDateKey(d = new Date()){
-      const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne', year:'numeric', month:'2-digit', day:'2-digit' });
-      return fmt.format(d); // "YYYY-MM-DD"
-    }
-    function getDayNumber(){
-      const start = HINT_START_DATE;
-      const today = melDateKey();
-      const toParts = s => s.split('-').map(n=>parseInt(n,10));
-      const [sy, sm, sd] = toParts(start);
-      const [ty, tm, td] = toParts(today);
-      const a = Date.UTC(sy, sm-1, sd), b = Date.UTC(ty, tm-1, td);
-      return Math.floor((b - a) / 86400000) + 1; // Day 1 on start date
-    }
-
-    // Sheets logger
-    function logGuess(guess) {
-      if (!WEBAPP) return;
+    // Log "Found it!" to Sheets
+    document.getElementById('foundBtn').addEventListener('click', (e) => {
+      e.preventDefault();
       try {
         fetch(WEBAPP, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ guess: guess, ua: navigator.userAgent || '' })
+          method:'POST',
+          mode:'no-cors',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ guess:"[FOUND_EGG]", ua:navigator.userAgent })
         });
-      } catch (_) {}
-    }
-
-    // Local counters (per-device)
-    const COUNT_KEY = 'guess_count';
-    const DAYS_KEY  = 'guess_days';
-    function getGuessCount(){ return parseInt(localStorage.getItem(COUNT_KEY) || '0', 10) || 0; }
-    function setGuessCount(n){ localStorage.setItem(COUNT_KEY, String(n)); guessCountEl.textContent = String(n); }
-    function incGuessCount(){ setGuessCount(getGuessCount() + 1); }
-    function getGuessDays(){ try { return JSON.parse(localStorage.getItem(DAYS_KEY) || '[]'); } catch { return []; } }
-    function addTodayToDays(){ const k=melDateKey(); const arr=getGuessDays(); if(!arr.includes(k)){ arr.push(k); localStorage.setItem(DAYS_KEY, JSON.stringify(arr)); } }
-    function uniqueDaysCount(){ return getGuessDays().length; }
-
-    // ---------- HINT RENDERERS ----------
-    function renderHint(){
-      const day = getDayNumber();
-      hintArea.innerHTML = ''; // clear
-
-      if (day <= 1) {
-        // Day 1: playful text
-        const p = document.createElement('div');
-        p.textContent = "hint on day 1? you're better than that";
-        hintArea.appendChild(p);
-        return;
-      }
-
-      if (day === 2) renderSlidingNumberPuzzle();
-      else if (day >= 3) renderMiniCrossword(); // keep showing from day 3 onwards
-    }
-
-    // ---- Day 2: 3x3 sliding NUMBER puzzle ----
-    function renderSlidingNumberPuzzle(){
-      const wrap = document.createElement('div');
-      const intro = document.createElement('div');
-      intro.textContent = "slide the numbered tiles to solve the puzzle and reveal a hint";
-      intro.style.marginBottom = '.4rem';
-
-      const board = document.createElement('div');
-      board.className = 'puzzle';
-
-      // Tiles 0..8, where 8 is empty (we'll display 1..8 on tiles)
-      let tiles = [...Array(9).keys()]; // [0..8]
-      tiles = shuffleSolvable(tiles);
-
-      function draw(){
-        board.innerHTML = '';
-        tiles.forEach((idx) => {
-          const div = document.createElement('button');
-          div.type = 'button';
-          div.className = 'tile';
-          if (idx === 8) {
-            div.classList.add('empty');
-          } else {
-            div.classList.add('num');
-            div.setAttribute('data-num', String(idx + 1)); // 1..8
-          }
-          div.addEventListener('click', () => tryMove(tiles.indexOf(idx)));
-          board.appendChild(div);
-        });
-      }
-
-      function tryMove(pos){
-        const emptyPos = tiles.indexOf(8);
-        const adj = neighbors(emptyPos);
-        if (adj.includes(pos)) {
-          [tiles[pos], tiles[emptyPos]] = [tiles[emptyPos], tiles[pos]];
-          draw();
-          if (isSolved()) {
-            board.classList.add('solved');
-            setTimeout(() => {
-              const msg = document.createElement('div');
-              msg.style.marginTop = '.6rem';
-              msg.innerHTML = "<strong>password is a question (ends with a ?)</strong>";
-              hintArea.appendChild(msg);
-            }, 450);
-          }
-        }
-      }
-
-      function isSolved(){
-        for (let i=0;i<9;i++) if (tiles[i] !== i) return false;
-        return true;
-      }
-
-      function neighbors(emptyPos){
-        const row = Math.floor(emptyPos/3), col = emptyPos%3;
-        const res = [];
-        if (row>0) res.push(emptyPos-3);
-        if (row<2) res.push(emptyPos+3);
-        if (col>0) res.push(emptyPos-1);
-        if (col<2) res.push(emptyPos+1);
-        return res;
-      }
-
-      function shuffleSolvable(a){
-        let arr = a.slice();
-        do {
-          for (let i=arr.length-1;i>0;i--){
-            const j = Math.floor(Math.random()*(i+1));
-            [arr[i],arr[j]]=[arr[j],arr[i]];
-          }
-        } while (!isSolvable(arr));
-        return arr;
-      }
-      function isSolvable(a){
-        // 3x3: solvable if inversion count is even
-        let inv=0;
-        for(let i=0;i<8;i++) for(let j=i+1;j<9;j++){
-          if(a[i]===8 || a[j]===8) continue;
-          if(a[i]>a[j]) inv++;
-        }
-        return inv%2===0;
-      }
-
-      draw();
-      wrap.appendChild(intro);
-      wrap.appendChild(board);
-      hintArea.appendChild(wrap);
-    }
-
-    // ---- Day 3+: your custom crossword (no embeds) ----
-    function renderMiniCrossword(){
-      const GRID = [
-        "#######ALDI",
-        "#######R##N",
-        "####COLDEST",
-        "####R##E##E",
-        "###KYNAN##R",
-        "###I######M",
-        "#BISCOFF##E",
-        "#L#S######Z",
-        "GUZMAN#RIZZ",
-        "#E#E######O"
-      ];
-      const ACROSS = [
-        [1, "a great place for chorizo"],
-        [3, "what toes could be considered in comparison to other body parts"],
-        [4, "your thug crush"],
-        [5, "popular brand bracelet (only for you and very messy)"],
-        [6, "mexican fast food name"],
-        [7, "what this crossword could be considered"]
-      ];
-      const DOWN = [
-        [1, "a location that is always open (a temple)"],
-        [2, "recently added to a kindle (book rec)"],
-        [3, "something thats hard for you to do"],
-        [4, "your hint"],
-        [5, "descriptor of 3 across (a colour)"],
-      ];
-
-      const wrap   = document.createElement('div');
-      const intro  = document.createElement('div');
-      intro.textContent = "goodluck!!";
-      intro.style.marginBottom = '.4rem';
-
-      const gridEl = document.createElement('div');
-      gridEl.className = 'cross';
-
-      const cluesEl = document.createElement('div');
-      cluesEl.className = 'clues';
-
-      const result = document.createElement('div');
-      result.style.marginTop = '.6rem';
-
-      const R = GRID.length;
-      const C = GRID[0].length;
-      for (const row of GRID) if (row.length !== C) throw new Error('All GRID rows must be the same length');
-      const isBlock = (r,c) => GRID[r][c] === '#';
-
-      // Numbering
-      let n = 0;
-      const cellNum = Array.from({length:R},()=>Array(C).fill(0));
-      const acrossStarts = [];
-      const downStarts   = [];
-      for (let r=0;r<R;r++){
-        for (let c=0;c<C;c++){
-          if (isBlock(r,c)) continue;
-          const startA = (c===0 || isBlock(r,c-1));
-          const startD = (r===0 || isBlock(r-1,c));
-          if (startA || startD){
-            n++; cellNum[r][c] = n;
-            if (startA) acrossStarts.push({num:n, r, c});
-            if (startD) downStarts.push({num:n, r, c});
-          }
-        }
-      }
-
-      // Extract true answers from GRID
-      const acrossAns = [];
-      for (const s of acrossStarts){
-        let cc = s.c, text = "";
-        while (cc < C && !isBlock(s.r, cc)) { text += GRID[s.r][cc]; cc++; }
-        acrossAns.push({ num: s.num, r: s.r, c: s.c, ans: text.toUpperCase(), len: text.length });
-      }
-      const downAns = [];
-      for (const s of downStarts){
-        let rr = s.r, text = "";
-        while (rr < R && !isBlock(rr, s.c)) { text += GRID[rr][s.c]; rr++; }
-        downAns.push({ num: s.num, r: s.r, c: s.c, ans: text.toUpperCase(), len: text.length });
-      }
-
-      // Only show multi-letter entries as clues (typical UX)
-      const acrossMulti = acrossAns.filter(x => x.len > 1);
-      const downMulti   = downAns.filter(x => x.len > 1);
-
-      // --- Build cells (with small numbers) ---
-      const inputs = Array.from({length:R},()=>Array(C).fill(null));
-      for (let r=0;r<R;r++){
-        for (let c=0;c<C;c++){
-          if (isBlock(r,c)) {
-            const blk = document.createElement('div');
-            blk.className = 'blk';
-            gridEl.appendChild(blk);
-            continue;
-          }
-
-          const cell = document.createElement('div');
-          cell.className = 'cell';
-
-          const numHere = cellNum[r][c];
-          if (numHere) {
-            const nspan = document.createElement('span');
-            nspan.className = 'num';
-            nspan.textContent = String(numHere);
-            cell.appendChild(nspan);
-          }
-
-          const inp = document.createElement('input');
-          inp.className = 'cx';
-          inp.maxLength = 1;
-          inp.autocomplete = 'off';
-          inp.inputMode = 'latin';
-          inp.setAttribute('aria-label', `Row ${r+1}, Column ${c+1}${numHere ? `, number ${numHere}` : ''}`);
-
-          inp.addEventListener('input', () => {
-            inp.value = inp.value.toUpperCase();
-            // focus-right convenience
-            if (inp.value && c+1<C && !isBlock(r,c+1)) inputs[r][c+1]?.focus();
-            checkSolved();
-          });
-
-          inputs[r][c] = inp;
-          cell.appendChild(inp);
-          gridEl.appendChild(cell);
-        }
-      }
-
-      // Clue text using engine numbering + your clue lists order
-      const acrossHTML = acrossMulti.map((cell, i) => {
-        const clue = ACROSS[i] ? ACROSS[i][1] : '';
-        return `${cell.num}. ${escapeHtml(clue)} (${cell.len})`;
-      }).join('<br>');
-      const downHTML = downMulti.map((cell, i) => {
-        const clue = DOWN[i] ? DOWN[i][1] : '';
-        return `${cell.num}. ${escapeHtml(clue)} (${cell.len})`;
-      }).join('<br>');
-
-      cluesEl.innerHTML =
-        (acrossHTML ? "<strong>Across</strong><br>" + acrossHTML : "") +
-        (downHTML   ? "<br><br><strong>Down</strong><br>" + downHTML : "");
-
-      // Readers
-      function readAcross(r,c){
-        let s="", cc=c;
-        while (cc<C && !isBlock(r,cc)) { s += (inputs[r][cc]?.value || ' ').toUpperCase(); cc++; }
-        return s;
-      }
-      function readDown(r,c){
-        let s="", rr=r;
-        while (rr<R && !isBlock(rr,c)) { s += (inputs[rr][c]?.value || ' ').toUpperCase(); rr++; }
-        return s;
-      }
-
-      function checkSolved(){
-        for (const a of acrossAns){
-          const got = readAcross(a.r, a.c);
-          if (got.length !== a.len || got !== a.ans) { result.textContent = ''; return; }
-        }
-        for (const d of downAns){
-          const got = readDown(d.r, d.c);
-          if (got.length !== d.len || got !== d.ans) { result.textContent = ''; return; }
-        }
-        // All correct
-        result.innerHTML = "<strong>Very Impressed! now use the password :)</strong>";
-      }
-
-      // Mount
-      wrap.appendChild(intro);
-      wrap.appendChild(gridEl);
-      wrap.appendChild(cluesEl);
-      wrap.appendChild(result);
-      hintArea.appendChild(wrap);
-
-      // Focus first open cell
-      outer: for (let r=0;r<R;r++){
-        for (let c=0;c<C;c++){
-          if (GRID[r][c] !== '#') { inputs[r][c].focus(); break outer; }
-        }
-      }
-    }
-    // ---------- end hint renderers ----------
-
-    // Admin feed
-    function loadFeed() {
-      if (!WEBAPP) return;
-      const cb = 'feedcb_' + Math.random().toString(36).slice(2);
-      window[cb] = function(data) {
-        const rows = (data && data.rows) ? data.rows : [];
-        const last = rows.slice(-50).reverse();
-        feedEl.innerHTML = last.length ? '' : '<div class="small">No entries yet.</div>';
-        last.forEach(r => {
-          const when = r[0] ? new Date(r[0]).toLocaleString() : '';
-          const g = r[1] || '';
-          const ua = r[2] || '';
-          const div = document.createElement('div');
-          div.className = 'feed-row';
-          div.innerHTML = `<strong>${escapeHtml(g)}</strong> <span class="small">— ${escapeHtml(when)}</span><div class="small">${escapeHtml(ua)}</div>`;
-          feedEl.appendChild(div);
-        });
-        delete window[cb]; script.remove();
-      };
-      const script = document.createElement('script');
-      script.src = WEBAPP + '?callback=' + cb;
-      document.body.appendChild(script);
-    }
-
-    // Init
-    setGuessCount(getGuessCount());
-    counterWrap.classList.add('hidden');
-    if (isAdminMode()) { adminFeed.classList.remove('hidden'); loadFeed(); }
-
-    // Form submit
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      err.textContent = "";
-      note.textContent = "";
-      hintBox.classList.add('hidden'); // hide hint after submit; will re-open on next wrong
-
-      if (counterWrap.classList.contains('hidden')) counterWrap.classList.remove('hidden');
-
-      const raw = (pw.value || "").trim();
-      const v = raw.toLowerCase();
-
-      // track her local attempts and unique days
-      incGuessCount();
-      addTodayToDays();
-
-      const hereCount = getGuessCount();
-      const hereDays  = uniqueDaysCount();
-
-      if (v === SECRET.toLowerCase()) {
-        logGuess(`[OK][N:${hereCount}] ${raw}`);
-        const msg =
-          `if you say so! :) especially after ${hereCount} ${hereCount===1?'guess':'guesses'} in ${hereDays} ${hereDays===1?'day':'days'}.\n\n` +
-          `use the code below for a free "cuddle and a million kisses" `;
-        revealMsg.innerHTML = escapeHtml(msg) + `<span class="coupon">ASHLEEISVERYCUTE</span>`;
-        reveal.classList.remove('hidden');
-        pw.value = "";
-        replyEl && replyEl.focus();
-      } else if (v === OLDSECRET.toLowerCase()) {
-        err.textContent = "you used an old outdated password 🔒 (how embarrasing)";
-        pw.value = "";
-        logGuess(`[OLD][N:${hereCount}] ${raw}`);
-      } else {
-        err.textContent = "not this again amiright?";
-        // render and show the current day's hint
-        hintArea.innerHTML = '';
-        renderHint();
-        hintBox.open = false; // closed until she taps
-        hintBox.classList.remove('hidden');
-        pw.value = "";
-        logGuess(`[N:${hereCount}] ${raw}`);
-      }
-
-      if (isAdminMode()) setTimeout(loadFeed, 800);
-    });
-
-    // Reply logging
-    sendReplyBtn.addEventListener('click', () => {
-      const text = (replyEl.value || '').trim();
-      replyStatus.textContent = '';
-      if (!text) { replyStatus.textContent = 'please type a reply first 🙂'; return; }
-      sendReplyBtn.disabled = true;
-      logGuess('[REPLY] ' + text);
-      setTimeout(() => {
-        replyStatus.textContent = 'sent! 💌';
-        replyEl.value = '';
-        sendReplyBtn.disabled = false;
-      }, 700);
+      } catch(_){}
+      // Tiny feedback
+      alert("Noted ✅");
     });
   </script>
 </body>
