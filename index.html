@@ -15,26 +15,21 @@
     }
     .scene { width:min(520px, 92vw); perspective:1000px; }
 
-    /* FIX: clip contents within red outline on mobile */
     .card {
-      position:relative; border-radius:10px; outline:2px solid var(--line);
-      box-shadow:0 0 12px var(--warn);
-      overflow:hidden; /* <- added */
+      position:relative; border-radius:10px; outline:2px solid var(--line); box-shadow:0 0 12px var(--warn);
+      overflow:hidden;
     }
     .card-inner {
       position:relative; width:100%; transform-style:preserve-3d;
       transition: transform .6s cubic-bezier(.2,.8,.2,1);
-      border-radius:10px;            /* <- added */
-      overflow:hidden;               /* <- added */
+      border-radius:10px; overflow:hidden;
     }
     @media (prefers-reduced-motion: reduce) { .card-inner { transition:none; } }
 
     .face {
       position:relative; padding:2rem; background:var(--card); border-radius:8px;
       min-height:280px; display:flex; flex-direction:column; align-items:center; justify-content:center;
-      backface-visibility:hidden;            /* safety */
-      -webkit-backface-visibility:hidden;    /* iOS safety */
-      width:100%;                             /* ensure no accidental expansion */
+      backface-visibility:hidden; -webkit-backface-visibility:hidden; width:100%;
     }
     .back-face { position:absolute; inset:0; transform:rotateY(180deg); }
 
@@ -74,7 +69,18 @@
     @media (min-width:560px) {
       .back-grid { grid-template-columns: 1.3fr .9fr; }
     }
-    @media (max-width:420px) { h1 { font-size:1.2rem; } }
+
+    /* ADDED: Make the front at least as tall as the back on small screens */
+    @media (max-width:480px) {
+      .front-face { min-height: 460px; } /* adjust if your cat image is taller */
+    }
+
+    /* ADDED (optional): Slightly smaller cat on very small phones */
+    @media (max-width:360px) {
+      .face { padding: 1.25rem; }
+      .cat { max-width: 180px; }
+      h1 { font-size:1.2rem; }
+    }
   </style>
 </head>
 <body>
