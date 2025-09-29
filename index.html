@@ -14,11 +14,28 @@
       display:flex; align-items:center; justify-content:center; text-align:center;
     }
     .scene { width:min(520px, 92vw); perspective:1000px; }
-    .card { position:relative; border-radius:10px; outline:2px solid var(--line); box-shadow:0 0 12px var(--warn); }
-    .card-inner { position:relative; width:100%; transform-style:preserve-3d; transition: transform .6s cubic-bezier(.2,.8,.2,1); }
+
+    /* FIX: clip contents within red outline on mobile */
+    .card {
+      position:relative; border-radius:10px; outline:2px solid var(--line);
+      box-shadow:0 0 12px var(--warn);
+      overflow:hidden; /* <- added */
+    }
+    .card-inner {
+      position:relative; width:100%; transform-style:preserve-3d;
+      transition: transform .6s cubic-bezier(.2,.8,.2,1);
+      border-radius:10px;            /* <- added */
+      overflow:hidden;               /* <- added */
+    }
     @media (prefers-reduced-motion: reduce) { .card-inner { transition:none; } }
-    .face { position:relative; padding:2rem; background:var(--card); border-radius:8px; min-height:280px;
-            display:flex; flex-direction:column; align-items:center; justify-content:center; backface-visibility:hidden; }
+
+    .face {
+      position:relative; padding:2rem; background:var(--card); border-radius:8px;
+      min-height:280px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      backface-visibility:hidden;            /* safety */
+      -webkit-backface-visibility:hidden;    /* iOS safety */
+      width:100%;                             /* ensure no accidental expansion */
+    }
     .back-face { position:absolute; inset:0; transform:rotateY(180deg); }
 
     h1 { margin:0 0 1rem; font-size:1.4rem; color:var(--warn); text-transform:uppercase; letter-spacing:2px; }
@@ -46,33 +63,18 @@
       text-align:left;
     }
     .back-left { text-align:left; }
-    .cat-figure {
-      margin:0;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:.35rem;
-    }
+    .cat-figure { margin:0; display:flex; flex-direction:column; align-items:center; gap:.35rem; }
     .cat {
-      width:100%;
-      max-width:220px;
-      height:auto;
-      border-radius:12px;
-      border:2px solid var(--line);
+      width:100%; max-width:220px; height:auto;
+      border-radius:12px; border:2px solid var(--line);
       box-shadow:0 2px 10px rgba(0,0,0,.25);
     }
     .cat-cap { color:var(--muted); font-size:.85rem; text-align:center; }
 
     @media (min-width:560px) {
-      .back-grid {
-        grid-template-columns: 1.3fr .9fr;
-        text-align:left;
-      }
+      .back-grid { grid-template-columns: 1.3fr .9fr; }
     }
-
-    @media (max-width:420px) {
-      h1 { font-size:1.2rem; }
-    }
+    @media (max-width:420px) { h1 { font-size:1.2rem; } }
   </style>
 </head>
 <body>
@@ -101,8 +103,8 @@
             </div>
 
             <figure class="cat-figure">
-              <!-- Your cat photo next to index.html -->
-              <img src="giz.jpg" alt="pic broke :(" class="cat" />
+              <img src="giz.jpg" alt="Giz the cat saying hi" class="cat" />
+              <figcaption class="cat-cap">giz says hi 👋</figcaption>
             </figure>
           </div>
         </section>
@@ -111,10 +113,8 @@
   </div>
 
   <script>
-    // Google Sheets Apps Script URL (same one you already use for guesses)
     const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
 
-    // Auto-unflip after 12s so it still looks like maintenance later
     (function(){
       const egg = document.getElementById('egg');
       let timer;
@@ -124,7 +124,6 @@
       }, {passive:true});
     })();
 
-    // Log "Found it!" to Sheets
     document.getElementById('foundBtn').addEventListener('click', (e) => {
       e.preventDefault();
       try {
@@ -135,7 +134,6 @@
           body: JSON.stringify({ guess:"[FOUND_EGG]", ua:navigator.userAgent })
         });
       } catch(_){}
-
     });
   </script>
 </body>
