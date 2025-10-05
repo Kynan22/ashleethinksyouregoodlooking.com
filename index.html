@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Correct responsive scaling -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Enter</title>
   <style>
     :root {
@@ -22,6 +23,7 @@
       border-radius:14px;
       padding:28px 22px;
       box-shadow:0 10px 30px rgba(0,0,0,.35);
+      text-align:center;
     }
     h1 { margin:0 0 12px; font-weight:700; letter-spacing:.5px; font-size:1.25rem; }
     p  { margin:.25rem 0 .75rem; color:var(--muted); }
@@ -39,11 +41,19 @@
     .msg { margin-top:12px; min-height:1.5em; font-weight:700; }
     .warn { color:var(--accent); }
     .ok   { color:var(--ok); }
+    .note { margin-top:10px; color:var(--accent); font-weight:600; font-size:0.95rem; }
     .hidden { display:none !important; }
 
     /* After unlock we let the game fill the page: */
-    .game-wrap { width:100%; height:100%; }
-    canvas { touch-action: none; } /* better mobile control for many engines */
+    .game-wrap { width:100vw; height:100vh; }
+    canvas {
+      touch-action: none;
+      width:100vw;
+      height:100vh;
+      max-width:100%;
+      max-height:100%;
+      display:block;
+    }
   </style>
 </head>
 <body>
@@ -51,9 +61,10 @@
   <section id="gate" class="gate" aria-label="Access">
     <h1>Enter Password</h1>
     <div class="row">
-      <input id="pw" type="password" inputmode="text" autocomplete="off" spellcheck="false" placeholder="password…" />
+      <input id="pw" type="password" inputmode="text" autocomplete="off" spellcheck="false" placeholder=":)" />
       <button id="go">OK</button>
     </div>
+    <p class="note">Password Reveal = 1 Kiss 💋</p>
     <div id="msg" class="msg" aria-live="polite"></div>
   </section>
 
@@ -61,7 +72,7 @@
   <div id="game" class="game-wrap hidden" role="main" aria-label="Game"></div>
 
   <script>
-    // SAME Google Apps Script endpoint you already use
+    // Google Sheets logging endpoint
     const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
 
     const $ = (q) => document.querySelector(q);
@@ -71,12 +82,9 @@
     const btn = $('#go');
     const msg = $('#msg');
 
-    // Normalize: trim, lowercase, strip spaces (so "uber game" == "ubergame")
     const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, '');
-    const ACCEPT = new Set(['uber', 'ubergame']); // covers "uber", "ubergame" & "uber game"
-
-    // Persist success so refresh doesn't ask again (optional)
-    const KEY_OK = 'gate_ok_v1';
+    const ACCEPT = new Set(['uber', 'ubergame']); // accepts "uber", "uber game", "ubergame"
+    const KEY_OK = 'gate_ok_v1'; // localstorage flag
 
     function logGuess(guess, outcome) {
       try {
@@ -86,12 +94,12 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             guess,
-            outcome,               // "ok" | "hint" | "bad"
+            outcome,
             ts: new Date().toISOString(),
             ua: navigator.userAgent
           })
         });
-      } catch (_) { /* ignore */ }
+      } catch (_) {}
     }
 
     function showMessage(text, cls = 'warn') {
@@ -100,15 +108,14 @@
     }
 
     function unlock() {
-      // Hide gate, show game container, load main.js
       gate.classList.add('hidden');
       gameWrap.classList.remove('hidden');
 
-      // Dynamically load your Kaboom game (as an ES module)
+      // dynamically load your Kaboom game
       const s = document.createElement('script');
       s.type = 'module';
-      s.src = './main.js?v=' + Date.now(); // cache-bust on first load
-      s.onerror = () => showMessage('Could not load game (main.js). Check the file path.', 'warn');
+      s.src = './main.js?v=' + Date.now();
+      s.onerror = () => showMessage('Could not load game (main.js). Check path.', 'warn');
       document.body.appendChild(s);
     }
 
@@ -118,7 +125,7 @@
 
       if (!raw.trim()) return;
 
-      // 1) Hint path
+      // Hint path
       if (trimmedLower === 'hint') {
         showMessage('the hint is: what app did we use to play a silly game on a park bench at the end of date number 3 :)', 'ok');
         logGuess('[HINT]', 'hint');
@@ -126,7 +133,7 @@
         return;
       }
 
-      // 2) Acceptable passwords
+      // Accepted passwords
       if (ACCEPT.has(norm(raw))) {
         showMessage('Loading…', 'ok');
         logGuess(raw, 'ok');
@@ -135,24 +142,20 @@
         return;
       }
 
-      // 3) Wrong guess
+      // Wrong password
       showMessage('Password Reveal = 1 kiss', 'warn');
       logGuess(raw, 'bad');
       pw.select();
     }
 
-    // Wire up UI
     btn.addEventListener('click', handleSubmit);
     pw.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') handleSubmit();
     });
 
-    // If previously unlocked on this device, go straight in
-    if (localStorage.getItem(KEY_OK) === '1') {
-      unlock();
-    } else {
-      pw.focus();
-    }
+    // auto unlock if previously entered
+    if (localStorage.getItem(KEY_OK) === '1') unlock();
+    else pw.focus();
   </script>
 </body>
 </html>
