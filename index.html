@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Prevent zoom + give us the real viewport on mobile -->
+  <!-- Lock zoom & give real viewport on mobile -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Hello :)</title>
   <style>
@@ -47,28 +47,25 @@
 
     /* ---------- Game area ---------- */
     .game-wrap {
-      width:100vw;
-      height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      width:100vw; height:100vh;
+      display:flex; align-items:center; justify-content:center;
       background:#000; /* letterbox bars if needed */
+      touch-action:none;
     }
-    /* A real DOM box we resize to fit (NO transform scaling). */
+    /* Real DOM frame that we resize to fit phone; no CSS transforms. */
     .game-frame{
-      width:900px;      /* Kaboom logical width */
-      height:1100px;    /* Kaboom logical height */
-      position:relative;
-      overflow:hidden;
-      display:block;
+      /* logical game size (must match kaboom width/height) */
+      width:900px; height:1100px;
+      position:relative; overflow:hidden; display:block;
+      /* shrink to fit small phones like Pixel 7a */
+      max-width: 95vw;                 /* keep a little margin */
+      max-height: calc(95vh - 8px);
+      aspect-ratio: 9 / 11;
     }
-    /* Canvas fills the frame. Touch hit-testing stays correct. */
+    /* Canvas fills the frame; pointer math stays correct. */
     .game-frame > canvas{
-      width:100%;
-      height:100%;
-      display:block;
-      border-radius:8px;
-      touch-action:none; /* better mobile input */
+      width:100%; height:100%; display:block; border-radius:8px;
+      touch-action:none; pointer-events:auto; /* ensure taps reach canvas */
     }
   </style>
 </head>
@@ -86,110 +83,112 @@
 
   <!-- Game mount (hidden until unlocked) -->
   <div id="game" class="game-wrap hidden" role="main" aria-label="Game">
-    <div class="game-frame"></div>
+    <div class="game-frame" id="gameFrame"></div>
   </div>
 
   <script>
     // === Config ===
     const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
-    const LOGICAL_W = 900;   // must match kaboom({ width })
-    const LOGICAL_H = 1100;  // must match kaboom({ height })
-    const SAFE_PAD  = 8;     // small breathing space around frame
-
-    // === Gate elements ===
-    const $      = (q) => document.querySelector(q);
-    const gate   = $('#gate');
-    const gameWrap = $('#game');
-    const frame  = document.querySelector('.game-frame');
-    const pw     = $('#pw');
-    const btn    = $('#go');
-    const msg    = $('#msg');
-
-    // Accept "uber", "ubergame" and "uber game" in any capitalization
-    const norm  = (s) => s.trim().toLowerCase().replace(/\s+/g, '');
-    const ACCEPT = new Set(['uber', 'ubergame']);
     const KEY_OK = 'gate_ok_v1';
+
+    // Accept "uber", "ubergame", "uber game" (any case)
+    const norm  = (s) => s.trim().toLowerCase().replace(/\s+/g, '');
+    const ACCEPT = new Set(['uber','ubergame']);
+
+    // Elements
+    const $ = (q) => document.querySelector(q);
+    const gate = $('#gate');
+    const gameWrap = $('#game');
+    const frame = $('#gameFrame');
+    const pw  = $('#pw');
+    const btn = $('#go');
+    const msg = $('#msg');
 
     function logGuess(guess, outcome) {
       try {
         fetch(WEBAPP, {
-          method:'POST',
-          mode:'no-cors',
+          method:'POST', mode:'no-cors',
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ guess, outcome, ts:new Date().toISOString(), ua:navigator.userAgent })
         });
       } catch(_) {}
     }
+    function showMessage(text, cls='warn'){ msg.className='msg '+cls; msg.textContent=text; }
 
-    function showMessage(text, cls='warn') {
-      msg.className = 'msg ' + cls;
-      msg.textContent = text;
+    // --- Touch → Pointer bridge (helps some Android browsers) ---
+    function enableTouchBridge(canvas){
+      // be explicit
+      canvas.style.touchAction = 'none';
+      canvas.style.pointerEvents = 'auto';
+      const opts = { passive:false };
+
+      const fire = (type, t) => {
+        const ev = new PointerEvent(type, {
+          bubbles:true,
+          pointerType:'touch',
+          pointerId: t.identifier || 1,
+          clientX: t.clientX,
+          clientY: t.clientY,
+          buttons: type === 'pointerdown' ? 1 : 0,
+        });
+        canvas.dispatchEvent(ev);
+      };
+
+      canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        for (const t of e.changedTouches) fire('pointerdown', t);
+      }, opts);
+
+      canvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+          fire('pointerup', t);
+          // fallback click for engines listening to click
+          canvas.dispatchEvent(new MouseEvent('click', { bubbles:true, clientX:t.clientX, clientY:t.clientY }));
+        }
+      }, opts);
+
+      canvas.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        for (const t of e.changedTouches) fire('pointercancel', t);
+      }, opts);
     }
 
-    // --- Fit the frame to the viewport (no transforms) ---
-    function applyScale(){
-      if (!frame) return;
-      const availW = Math.max(0, gameWrap.clientWidth  - SAFE_PAD*2);
-      const availH = Math.max(0, gameWrap.clientHeight - SAFE_PAD*2);
-
-      const sx = availW / LOGICAL_W;
-      const sy = availH / LOGICAL_H;
-      const scale = Math.min(sx, sy, 1); // don't upscale past 1
-
-      const w = Math.round(LOGICAL_W * scale);
-      const h = Math.round(LOGICAL_H * scale);
-      frame.style.width  = w + 'px';
-      frame.style.height = h + 'px';
-    }
-
-    // Keep sizing up-to-date
-    ['resize','orientationchange'].forEach(ev => window.addEventListener(ev, applyScale));
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', applyScale);
-      window.visualViewport.addEventListener('scroll', applyScale, {passive:true});
-    }
-
-    // Watch for Kaboom's canvas, and move it into the frame
+    // Watch for Kaboom's <canvas> and move it into the frame, then enable bridge
     const mo = new MutationObserver(() => {
       const cvs = document.querySelector('canvas');
       if (cvs && !frame.contains(cvs)) {
         frame.appendChild(cvs);
-        // Ensure canvas fills the resizable frame
         cvs.style.width = '100%';
         cvs.style.height = '100%';
-        applyScale();
+        cvs.setAttribute('tabindex','0'); // allow focus
+        enableTouchBridge(cvs);
       }
     });
     mo.observe(document.documentElement, { childList:true, subtree:true });
 
-    function unlock() {
+    function unlock(){
       gate.classList.add('hidden');
       gameWrap.classList.remove('hidden');
 
-      // Load your Kaboom game (ES module)
       const s = document.createElement('script');
       s.type = 'module';
       s.src = './main.js?v=' + Date.now();
       s.onerror = () => showMessage('Could not load game (main.js).', 'warn');
       document.body.appendChild(s);
-
-      // Once visible, size the frame
-      requestAnimationFrame(applyScale);
-      setTimeout(applyScale, 100); // a little extra for soft keyboards / layout
     }
 
-    function handleSubmit() {
+    function handleSubmit(){
       const raw = pw.value;
-      const trimmedLower = raw.trim().toLowerCase();
+      const lower = raw.trim().toLowerCase();
       if (!raw.trim()) return;
 
-      if (trimmedLower === 'hint') {
-        showMessage('the hint is: what app did we use to play a silly game on a park bench at the end of date number 3 :)', 'ok');
+      if (lower === 'hint') {
+        showMessage('the hint is: what app did we use to play a silly game on a park bench at the end of date number 3 :)','ok');
         logGuess('[HINT]', 'hint');
         pw.value = '';
         return;
       }
-
       if (ACCEPT.has(norm(raw))) {
         showMessage('Loading…', 'ok');
         logGuess(raw, 'ok');
@@ -197,22 +196,15 @@
         unlock();
         return;
       }
-
       showMessage('Password Reveal = 1 kiss', 'warn');
       logGuess(raw, 'bad');
       pw.select();
     }
 
-    // Wire up gate
     btn.addEventListener('click', handleSubmit);
     pw.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
 
-    // Auto-unlock if already OK on this device
-    if (localStorage.getItem(KEY_OK) === '1') {
-      unlock();
-    } else {
-      pw.focus();
-    }
+    if (localStorage.getItem(KEY_OK) === '1') unlock(); else pw.focus();
   </script>
 </body>
 </html>
