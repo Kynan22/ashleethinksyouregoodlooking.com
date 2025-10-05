@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Correct responsive scaling -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Enter</title>
   <style>
@@ -10,9 +9,9 @@
       --bg:#0d0d0f; --ink:#eaeaea; --muted:#9aa0a6; --accent:#e63946; --card:#17171c; --ok:#42d392;
     }
     * { box-sizing: border-box; }
-    html, body { height:100%; }
+    html, body { height:100%; margin:0; }
     body {
-      margin:0; background:var(--bg); color:var(--ink);
+      background:var(--bg); color:var(--ink);
       font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
       display:grid; place-items:center;
     }
@@ -44,15 +43,24 @@
     .note { margin-top:10px; color:var(--accent); font-weight:600; font-size:0.95rem; }
     .hidden { display:none !important; }
 
-    /* After unlock we let the game fill the page: */
-    .game-wrap { width:100vw; height:100vh; }
-    canvas {
-      touch-action: none;
+    /* Centered game area that preserves aspect ratio */
+    .game-wrap {
       width:100vw;
       height:100vh;
-      max-width:100%;
-      max-height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#000; /* gives black bars if needed */
+    }
+
+    canvas {
+      width:90vw;
+      height:auto;
+      max-width:900px;
+      max-height:1100px;
+      aspect-ratio: 9 / 11;
       display:block;
+      border-radius:8px;
     }
   </style>
 </head>
@@ -61,20 +69,18 @@
   <section id="gate" class="gate" aria-label="Access">
     <h1>Enter Password</h1>
     <div class="row">
-      <input id="pw" type="password" inputmode="text" autocomplete="off" spellcheck="false" placeholder=":)" />
+      <input id="pw" type="password" inputmode="text" autocomplete="off" spellcheck="false" placeholder="password…" />
       <button id="go">OK</button>
     </div>
     <p class="note">Password Reveal = 1 Kiss 💋</p>
     <div id="msg" class="msg" aria-live="polite"></div>
   </section>
 
-  <!-- Game mount (shown after unlock) -->
+  <!-- Game mount -->
   <div id="game" class="game-wrap hidden" role="main" aria-label="Game"></div>
 
   <script>
-    // Google Sheets logging endpoint
     const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
-
     const $ = (q) => document.querySelector(q);
     const gate = $('#gate');
     const gameWrap = $('#game');
@@ -83,26 +89,23 @@
     const msg = $('#msg');
 
     const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, '');
-    const ACCEPT = new Set(['uber', 'ubergame']); // accepts "uber", "uber game", "ubergame"
-    const KEY_OK = 'gate_ok_v1'; // localstorage flag
+    const ACCEPT = new Set(['uber', 'ubergame']);
+    const KEY_OK = 'gate_ok_v1';
 
     function logGuess(guess, outcome) {
       try {
         fetch(WEBAPP, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
+          method:'POST',
+          mode:'no-cors',
+          headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
-            guess,
-            outcome,
-            ts: new Date().toISOString(),
-            ua: navigator.userAgent
+            guess, outcome, ts:new Date().toISOString(), ua:navigator.userAgent
           })
         });
-      } catch (_) {}
+      } catch(_) {}
     }
 
-    function showMessage(text, cls = 'warn') {
+    function showMessage(text, cls='warn') {
       msg.className = 'msg ' + cls;
       msg.textContent = text;
     }
@@ -111,21 +114,18 @@
       gate.classList.add('hidden');
       gameWrap.classList.remove('hidden');
 
-      // dynamically load your Kaboom game
       const s = document.createElement('script');
       s.type = 'module';
       s.src = './main.js?v=' + Date.now();
-      s.onerror = () => showMessage('Could not load game (main.js). Check path.', 'warn');
+      s.onerror = () => showMessage('Could not load game (main.js).', 'warn');
       document.body.appendChild(s);
     }
 
     function handleSubmit() {
       const raw = pw.value;
       const trimmedLower = raw.trim().toLowerCase();
-
       if (!raw.trim()) return;
 
-      // Hint path
       if (trimmedLower === 'hint') {
         showMessage('the hint is: what app did we use to play a silly game on a park bench at the end of date number 3 :)', 'ok');
         logGuess('[HINT]', 'hint');
@@ -133,7 +133,6 @@
         return;
       }
 
-      // Accepted passwords
       if (ACCEPT.has(norm(raw))) {
         showMessage('Loading…', 'ok');
         logGuess(raw, 'ok');
@@ -142,20 +141,14 @@
         return;
       }
 
-      // Wrong password
-      showMessage('Password Reveal = 1 kiss', 'warn');
+      showMessage('Password Reveal = 1 kiss 💋', 'warn');
       logGuess(raw, 'bad');
       pw.select();
     }
 
     btn.addEventListener('click', handleSubmit);
-    pw.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleSubmit();
-    });
-
-    // auto unlock if previously entered
-    if (localStorage.getItem(KEY_OK) === '1') unlock();
-    else pw.focus();
+    pw.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
+    if (localStorage.getItem(KEY_OK) === '1') unlock(); else pw.focus();
   </script>
 </body>
 </html>
