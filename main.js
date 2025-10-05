@@ -4,6 +4,7 @@ kaboom({
   height: 1100,
   background: [135, 206, 235],
   font: "gf",
+  root: document.getElementById("game"), // ensures canvas is inside game container
 });
 
 debug.inspect = false;
