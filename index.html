@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Hello :)</title>
   <style>
     :root {
       --bg:#0d0d0f; --ink:#eaeaea; --muted:#9aa0a6; --accent:#e63946; --card:#17171c; --ok:#42d392;
     }
-    * { box-sizing:border-box; }
-    html,body { height:100%; margin:0; }
+    * { box-sizing: border-box; }
+    html, body { height:100%; margin:0; }
     body {
       background:var(--bg); color:var(--ink);
       font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
@@ -28,42 +29,49 @@
     h1 { margin:0 0 12px; font-weight:700; letter-spacing:.5px; font-size:1.25rem; }
     p  { margin:.25rem 0 .75rem; color:var(--muted); }
     .row { display:flex; gap:10px; margin-top:.5rem; }
-    input[type="password"],input[type="text"]{
+    input[type="password"], input[type="text"]{
       flex:1; padding:14px; border-radius:10px; border:1px solid #32323a; outline:none;
       background:#0f0f13; color:var(--ink); font-size:1rem;
     }
-    input::placeholder{color:#5b5b66;}
+    input::placeholder { color:#5b5b66; }
     button{
       padding:14px 16px; border-radius:10px; border:1px solid #383842; background:#1d1d24;
       color:var(--ink); font-weight:700; cursor:pointer;
     }
-    button:active{transform:translateY(1px);}
-    .msg{margin-top:12px;min-height:1.5em;font-weight:700;}
-    .warn{color:var(--accent);}
-    .ok{color:var(--ok);}
-    .note{margin-top:10px;color:var(--accent);font-weight:600;font-size:0.95rem;}
-    .hidden{display:none!important;}
+    button:active{ transform: translateY(1px); }
+    .msg{ margin-top:12px; min-height:1.5em; font-weight:700; }
+    .warn{ color:var(--accent); }
+    .ok{ color:var(--ok); }
+    .note{ margin-top:10px; color:var(--accent); font-weight:600; font-size:0.95rem; }
+    .hidden{ display:none !important; }
 
-    /* --- Strongly Reduced Game Size (~60% smaller) --- */
+    /* Game area */
     .game-wrap{
       width:100vw;
-      height:100svh;
+      height:100svh;            /* accounts for mobile browser UI */
       display:flex;
       align-items:center;
       justify-content:center;
       background:#000;
-      overflow:hidden;
+      overflow:hidden;          /* no scroll while playing */
+      padding:6px;              /* small breathing room */
     }
 
-    canvas{
+    /* Fixed logical size frame that we scale down */
+    .game-frame{
+      width:900px;              /* your Kaboom width */
+      height:1100px;            /* your Kaboom height */
+      transform-origin:center center;
+      will-change:transform;
+      position:relative;
+    }
+
+    /* Let Kaboom’s canvas just fill the frame; the frame is what we scale */
+    .game-frame > canvas{
+      width:100%;
+      height:100%;
       display:block;
       border-radius:8px;
-      /* was 90vw/85svh → now 36vw/34svh (~40% original size) */
-      width:min(36vw,calc(36svh*(9/11)));
-      height:min(34svh,calc(36vw*(11/9)));
-      max-width:900px;
-      max-height:1100px;
-      aspect-ratio:9/11;
       touch-action:none;
     }
   </style>
@@ -73,7 +81,8 @@
   <section id="gate" class="gate" aria-label="Access">
     <h1>Enter Password</h1>
     <div class="row">
-      <input id="pw" type="password" inputmode="text" autocomplete="off" spellcheck="false" placeholder="password…" />
+      <input id="pw" type="password" inputmode="text" autocomplete="off"
+             spellcheck="false" placeholder="password…" />
       <button id="go">OK</button>
     </div>
     <p class="note">Password Reveal = 1 Kiss</p>
@@ -81,73 +90,127 @@
   </section>
 
   <!-- Game Mount -->
-  <div id="game" class="game-wrap hidden" role="main" aria-label="Game"></div>
+  <div id="game" class="game-wrap hidden" role="main" aria-label="Game">
+    <!-- we’ll inject .game-frame and move the canvas inside it -->
+  </div>
 
   <script>
+    // ---- Config ----
     const WEBAPP='https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
-    const $=(q)=>document.querySelector(q);
-    const gate=$('#gate');
-    const gameWrap=$('#game');
-    const pw=$('#pw');
-    const btn=$('#go');
-    const msg=$('#msg');
-    const norm=(s)=>s.trim().toLowerCase().replace(/\s+/g,'');
-    const ACCEPT=new Set(['uber','ubergame']);
-    const KEY_OK='gate_ok_v1';
+    const LOGICAL_W = 900;   // must match kaboom({ width })
+    const LOGICAL_H = 1100;  // must match kaboom({ height })
+    const SAFE_PAD  = 10;    // px: margin inside viewport
 
-    function logGuess(guess,outcome){
+    const $ = (q)=>document.querySelector(q);
+    const gate = $('#gate');
+    const gameWrap = $('#game');
+    const pw = $('#pw');
+    const btn = $('#go');
+    const msg = $('#msg');
+
+    // Accept "uber", "ubergame", "uber game" (any capitalization)
+    const norm = s => s.trim().toLowerCase().replace(/\s+/g,'');
+    const ACCEPT = new Set(['uber','ubergame']);
+    const KEY_OK = 'gate_ok_v1';
+
+    function logGuess(guess, outcome){
       try{
         fetch(WEBAPP,{
-          method:'POST',mode:'no-cors',
+          method:'POST', mode:'no-cors',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({guess,outcome,ts:new Date().toISOString(),ua:navigator.userAgent})
+          body:JSON.stringify({ guess, outcome, ts:new Date().toISOString(), ua:navigator.userAgent })
         });
       }catch(_){}
     }
 
-    function showMessage(text,cls='warn'){
-      msg.className='msg '+cls;
-      msg.textContent=text;
+    function showMessage(text, cls='warn'){
+      msg.className = 'msg ' + cls;
+      msg.textContent = text;
     }
 
     function unlock(){
       gate.classList.add('hidden');
       gameWrap.classList.remove('hidden');
-      const s=document.createElement('script');
-      s.type='module';
-      s.src='./main.js?v='+Date.now();
-      s.onerror=()=>showMessage('Could not load game (main.js).','warn');
+
+      // Ensure a frame exists before the canvas is created
+      const frame = document.createElement('div');
+      frame.className = 'game-frame';
+      gameWrap.appendChild(frame);
+
+      // Load your game
+      const s = document.createElement('script');
+      s.type = 'module';
+      s.src  = './main.js?v=' + Date.now();
+      s.onerror = () => showMessage('Could not load game (main.js).', 'warn');
       document.body.appendChild(s);
+
+      // Watch for the Kaboom canvas, then move it into our frame
+      const mo = new MutationObserver(() => {
+        const cvs = document.querySelector('canvas');
+        if (cvs && !frame.contains(cvs)) {
+          frame.appendChild(cvs);
+          applyScale();          // scale right away
+        }
+      });
+      mo.observe(document.documentElement, { childList:true, subtree:true });
+
+      // Re-scale on rotate/resize
+      window.addEventListener('resize', applyScale);
+      window.addEventListener('orientationchange', () => setTimeout(applyScale, 50));
+    }
+
+    function applyScale(){
+      const frame = document.querySelector('.game-frame');
+      if (!frame) return;
+
+      // Available space (minus padding)
+      const availW = Math.max(0, gameWrap.clientWidth  - SAFE_PAD*2);
+      const availH = Math.max(0, gameWrap.clientHeight - SAFE_PAD*2);
+
+      // Scale factor to fit 900x1100 inside viewport, keeping aspect
+      const sx = availW / LOGICAL_W;
+      const sy = availH / LOGICAL_H;
+      const scale = Math.min(sx, sy, 1);  // never upscale (keeps crisp on desktop)
+
+      frame.style.transform = `scale(${scale})`;
     }
 
     function handleSubmit(){
-      const raw=pw.value;
-      const trimmedLower=raw.trim().toLowerCase();
-      if(!raw.trim())return;
+      const raw = pw.value;
+      const trimmedLower = raw.trim().toLowerCase();
+      if (!raw.trim()) return;
 
-      if(trimmedLower==='hint'){
-        showMessage('the hint is: what app did we use to play a silly game on a park bench at the end of date number 3 :)','ok');
-        logGuess('[HINT]','hint');
-        pw.value='';
+      if (trimmedLower === 'hint') {
+        showMessage(
+          'the hint is: what app did we use to play a silly game on a park bench at the end of date number 3 :)',
+          'ok'
+        );
+        logGuess('[HINT]', 'hint');
+        pw.value = '';
         return;
       }
 
-      if(ACCEPT.has(norm(raw))){
-        showMessage('Loading…','ok');
-        logGuess(raw,'ok');
-        localStorage.setItem(KEY_OK,'1');
+      if (ACCEPT.has(norm(raw))) {
+        showMessage('Loading…', 'ok');
+        logGuess(raw, 'ok');
+        localStorage.setItem(KEY_OK, '1');
         unlock();
         return;
       }
 
-      showMessage('Password Reveal = 1 kiss','warn');
-      logGuess(raw,'bad');
+      showMessage('Password Reveal = 1 kiss', 'warn');
+      logGuess(raw, 'bad');
       pw.select();
     }
 
-    btn.addEventListener('click',handleSubmit);
-    pw.addEventListener('keydown',e=>{if(e.key==='Enter')handleSubmit();});
-    if(localStorage.getItem(KEY_OK)==='1')unlock();else pw.focus();
+    btn.addEventListener('click', handleSubmit);
+    pw.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
+
+    if (localStorage.getItem(KEY_OK) === '1') {
+      unlock();
+    } else {
+      pw.focus();
+    }
   </script>
 </body>
 </html>
