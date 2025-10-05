@@ -12,11 +12,11 @@
     html, body { height:100%; margin:0; }
     body {
       background:var(--bg); color:var(--ink);
-      font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
       display:grid; place-items:center;
     }
     .gate {
-      width:min(540px, 92vw);
+      width:min(540px,92vw);
       background:var(--card);
       border:1px solid #2a2a33;
       border-radius:14px;
@@ -28,7 +28,7 @@
     p  { margin:.25rem 0 .75rem; color:var(--muted); }
     .row { display:flex; gap:10px; margin-top:.5rem; }
     input[type="password"], input[type="text"] {
-      flex:1; padding:14px 14px; border-radius:10px; border:1px solid #32323a; outline:none;
+      flex:1; padding:14px; border-radius:10px; border:1px solid #32323a; outline:none;
       background:#0f0f13; color:var(--ink); font-size:1rem;
     }
     input::placeholder { color:#5b5b66; }
@@ -36,14 +36,14 @@
       padding:14px 16px; border-radius:10px; border:1px solid #383842; background:#1d1d24;
       color:var(--ink); font-weight:700; cursor:pointer;
     }
-    button:active { transform: translateY(1px); }
+    button:active { transform:translateY(1px); }
     .msg { margin-top:12px; min-height:1.5em; font-weight:700; }
     .warn { color:var(--accent); }
     .ok   { color:var(--ok); }
     .note { margin-top:10px; color:var(--accent); font-weight:600; font-size:0.95rem; }
     .hidden { display:none !important; }
 
-    /* --- Responsive Game Scaling --- */
+    /* --- Responsive Game Scaling (25% smaller) --- */
     .game-wrap {
       width:100vw;
       height:100svh;
@@ -58,14 +58,14 @@
       display:block;
       border-radius:8px;
 
-      /* Maintain 9:11 aspect ratio while shrinking further */
-      width:min(55vw, calc(55svh * (9 / 11)));
-      height:min(55svh, calc(55vw * (11 / 9)));
+      /* Reduced from 90vw → 67.5vw and 85svh → 63.75svh (~25% smaller) */
+      width:min(67.5vw, calc(67.5svh * (9 / 11)));
+      height:min(63.75svh, calc(67.5vw * (11 / 9)));
 
       max-width:900px;
       max-height:1100px;
 
-      aspect-ratio: 9 / 11;
+      aspect-ratio:9/11;
       touch-action:none;
     }
   </style>
@@ -94,67 +94,64 @@
     const btn = $('#go');
     const msg = $('#msg');
 
-    const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, '');
-    const ACCEPT = new Set(['uber', 'ubergame']);
+    const norm = (s) => s.trim().toLowerCase().replace(/\s+/g,'');
+    const ACCEPT = new Set(['uber','ubergame']);
     const KEY_OK = 'gate_ok_v1';
 
-    function logGuess(guess, outcome) {
+    function logGuess(guess,outcome){
       try {
-        fetch(WEBAPP, {
+        fetch(WEBAPP,{
           method:'POST',
           mode:'no-cors',
           headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({
-            guess, outcome, ts:new Date().toISOString(), ua:navigator.userAgent
-          })
+          body:JSON.stringify({guess,outcome,ts:new Date().toISOString(),ua:navigator.userAgent})
         });
-      } catch(_) {}
+      }catch(_){}
     }
 
-    function showMessage(text, cls='warn') {
-      msg.className = 'msg ' + cls;
-      msg.textContent = text;
+    function showMessage(text,cls='warn'){
+      msg.className='msg '+cls;
+      msg.textContent=text;
     }
 
-    function unlock() {
+    function unlock(){
       gate.classList.add('hidden');
       gameWrap.classList.remove('hidden');
-
-      const s = document.createElement('script');
-      s.type = 'module';
-      s.src = './main.js?v=' + Date.now();
-      s.onerror = () => showMessage('Could not load game (main.js).', 'warn');
+      const s=document.createElement('script');
+      s.type='module';
+      s.src='./main.js?v='+Date.now();
+      s.onerror=()=>showMessage('Could not load game (main.js).','warn');
       document.body.appendChild(s);
     }
 
-    function handleSubmit() {
-      const raw = pw.value;
-      const trimmedLower = raw.trim().toLowerCase();
-      if (!raw.trim()) return;
+    function handleSubmit(){
+      const raw=pw.value;
+      const trimmedLower=raw.trim().toLowerCase();
+      if(!raw.trim())return;
 
-      if (trimmedLower === 'hint') {
-        showMessage('the hint is: what app did we use to play a silly game on a park bench at the end of date number 3 :)', 'ok');
-        logGuess('[HINT]', 'hint');
-        pw.value = '';
+      if(trimmedLower==='hint'){
+        showMessage('the hint is: what app did we use to play a silly game on a park bench at the end of date number 3 :)','ok');
+        logGuess('[HINT]','hint');
+        pw.value='';
         return;
       }
 
-      if (ACCEPT.has(norm(raw))) {
-        showMessage('Loading…', 'ok');
-        logGuess(raw, 'ok');
-        localStorage.setItem(KEY_OK, '1');
+      if(ACCEPT.has(norm(raw))){
+        showMessage('Loading…','ok');
+        logGuess(raw,'ok');
+        localStorage.setItem(KEY_OK,'1');
         unlock();
         return;
       }
 
-      showMessage('Password Reveal = 1 kiss', 'warn');
-      logGuess(raw, 'bad');
+      showMessage('Password Reveal = 1 kiss','warn');
+      logGuess(raw,'bad');
       pw.select();
     }
 
-    btn.addEventListener('click', handleSubmit);
-    pw.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
-    if (localStorage.getItem(KEY_OK) === '1') unlock(); else pw.focus();
+    btn.addEventListener('click',handleSubmit);
+    pw.addEventListener('keydown',e=>{if(e.key==='Enter')handleSubmit();});
+    if(localStorage.getItem(KEY_OK)==='1')unlock();else pw.focus();
   </script>
 </body>
 </html>
