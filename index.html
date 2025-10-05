@@ -2,141 +2,159 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Maintenance Mode</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Enter</title>
   <style>
-    :root { --bg:#111; --ink:#eee; --warn:#e33; --card:#222; --muted:#999; --line:#e33; }
-    * { box-sizing:border-box; }
+    :root {
+      --bg:#0d0d0f; --ink:#eaeaea; --muted:#9aa0a6; --accent:#e63946; --card:#17171c; --ok:#42d392;
+    }
+    * { box-sizing: border-box; }
     html, body { height:100%; }
     body {
-      margin:0; padding:0; background:var(--bg); color:var(--ink);
-      font-family:"Courier New", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      display:flex; align-items:center; justify-content:center; text-align:center;
+      margin:0; background:var(--bg); color:var(--ink);
+      font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      display:grid; place-items:center;
     }
-    .scene { width:min(520px, 92vw); perspective:1000px; }
-    .card { position:relative; border-radius:10px; outline:2px solid var(--line); box-shadow:0 0 12px var(--warn); }
-    .card-inner { position:relative; width:100%; transform-style:preserve-3d; transition: transform .6s cubic-bezier(.2,.8,.2,1); }
-    @media (prefers-reduced-motion: reduce) { .card-inner { transition:none; } }
-    .face { position:relative; padding:2rem; background:var(--card); border-radius:8px; min-height:280px;
-            display:flex; flex-direction:column; align-items:center; justify-content:center; backface-visibility:hidden; }
-    .back-face { position:absolute; inset:0; transform:rotateY(180deg); }
-
-    h1 { margin:0 0 1rem; font-size:1.4rem; color:var(--warn); text-transform:uppercase; letter-spacing:2px; }
-    p { margin:.5rem 0; font-size:1rem; line-height:1.5; }
-    .muted { color:var(--muted); font-size:.9rem; }
-    .blinker { color:var(--warn); animation:blink 1s infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
-
-    .egg { position:absolute; width:1px; height:1px; margin:-1px; border:0; padding:0; clip:rect(0 0 0 0); clip-path:inset(50%); overflow:hidden; white-space:nowrap; }
-    .trigger { position:relative; display:inline-block; cursor:pointer; color:#eee; text-decoration:underline dotted; }
-    .trigger:focus-visible { outline:2px dashed var(--warn); outline-offset:2px; border-radius:4px; }
-    #egg:checked ~ .scene .card-inner { transform:rotateY(180deg); }
-
-    .btn { display:inline-block; margin-top:1rem; padding:.6rem .9rem; border:2px solid var(--warn);
-           border-radius:10px; color:var(--ink); text-decoration:none; font-weight:bold; }
-    .btn:active { transform: translateY(1px) scale(.99); }
-
-    /* Back-face layout with cat pic */
-    .back-grid {
-      width:100%;
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:14px;
-      align-items:center;
-      text-align:left;
+    .gate {
+      width:min(540px, 92vw);
+      background:var(--card);
+      border:1px solid #2a2a33;
+      border-radius:14px;
+      padding:28px 22px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
     }
-    .back-left { text-align:left; }
-    .cat-figure {
-      margin:0;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:.35rem;
+    h1 { margin:0 0 12px; font-weight:700; letter-spacing:.5px; font-size:1.25rem; }
+    p  { margin:.25rem 0 .75rem; color:var(--muted); }
+    .row { display:flex; gap:10px; margin-top:.5rem; }
+    input[type="password"], input[type="text"] {
+      flex:1; padding:14px 14px; border-radius:10px; border:1px solid #32323a; outline:none;
+      background:#0f0f13; color:var(--ink); font-size:1rem;
     }
-    .cat {
-      width:100%;
-      max-width:220px;
-      height:auto;
-      border-radius:12px;
-      border:2px solid var(--line);
-      box-shadow:0 2px 10px rgba(0,0,0,.25);
+    input::placeholder { color:#5b5b66; }
+    button {
+      padding:14px 16px; border-radius:10px; border:1px solid #383842; background:#1d1d24;
+      color:var(--ink); font-weight:700; cursor:pointer;
     }
-    .cat-cap { color:var(--muted); font-size:.85rem; text-align:center; }
+    button:active { transform: translateY(1px); }
+    .msg { margin-top:12px; min-height:1.5em; font-weight:700; }
+    .warn { color:var(--accent); }
+    .ok   { color:var(--ok); }
+    .hidden { display:none !important; }
 
-    @media (min-width:560px) {
-      .back-grid {
-        grid-template-columns: 1.3fr .9fr;
-        text-align:left;
-      }
-    }
-
-    @media (max-width:420px) {
-      h1 { font-size:1.2rem; }
-    }
+    /* After unlock we let the game fill the page: */
+    .game-wrap { width:100%; height:100%; }
+    canvas { touch-action: none; } /* better mobile control for many engines */
   </style>
 </head>
 <body>
-  <!-- Secret toggle -->
-  <input id="egg" class="egg" type="checkbox" aria-hidden="true" />
-
-  <div class="scene" role="region" aria-label="Maintenance status">
-    <div class="card">
-      <div class="card-inner" aria-live="polite">
-        <!-- FRONT -->
-        <section class="face front-face" aria-label="Maintenance notice">
-          <h1>System Maintenance</h1>
-          <p><span class="blinker">⚠</span> This site is temporarily down for scheduled upgrades.</p>
-          <p> Please check <label for="egg" class="trigger" title="(literally) check back">back</label> soon… </p>
-          <p class="muted" style="margin-top:1rem"> this process is sped up by thug crush admission </p>
-        </section>
-
-        <!-- BACK -->
-        <section class="face back-face" aria-label="Secret message">
-          <div class="back-grid">
-            <div class="back-left">
-              <h1>Easter Egg Discovered</h1>
-              <p>✅ Back Checked<br>Taking it literally paid off</p>
-              <p class="muted">cool date plan coming soon..</p>
-              <a class="btn" href="#" id="foundBtn">Found it!</a>
-            </div>
-
-            <figure class="cat-figure">
-              <!-- Your cat photo next to index.html -->
-              <img src="giz.jpg" alt="pic broke :(" class="cat" />
-            </figure>
-          </div>
-        </section>
-      </div>
+  <!-- Gate -->
+  <section id="gate" class="gate" aria-label="Access">
+    <h1>Enter</h1>
+    <p>What’s the magic word?</p>
+    <div class="row">
+      <input id="pw" type="password" inputmode="text" autocomplete="off" spellcheck="false" placeholder="password…" />
+      <button id="go">OK</button>
     </div>
-  </div>
+    <div id="msg" class="msg" aria-live="polite"></div>
+    <p class="hint-note" style="margin-top:.5rem">Type <strong>hint</strong> for a clue.</p>
+  </section>
+
+  <!-- Game mount (shown after unlock) -->
+  <div id="game" class="game-wrap hidden" role="main" aria-label="Game"></div>
 
   <script>
-    // Google Sheets Apps Script URL (same one you already use for guesses)
+    // SAME Google Apps Script endpoint you already use
     const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
 
-    // Auto-unflip after 12s so it still looks like maintenance later
-    (function(){
-      const egg = document.getElementById('egg');
-      let timer;
-      egg.addEventListener('change', () => {
-        clearTimeout(timer);
-        if (egg.checked) timer = setTimeout(() => (egg.checked = false), 12000);
-      }, {passive:true});
-    })();
+    const $ = (q) => document.querySelector(q);
+    const gate = $('#gate');
+    const gameWrap = $('#game');
+    const pw = $('#pw');
+    const btn = $('#go');
+    const msg = $('#msg');
 
-    // Log "Found it!" to Sheets
-    document.getElementById('foundBtn').addEventListener('click', (e) => {
-      e.preventDefault();
+    // Normalize: trim, lowercase, strip spaces (so "uber game" == "ubergame")
+    const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, '');
+    const ACCEPT = new Set(['uber', 'ubergame']); // covers "uber", "ubergame" & "uber game"
+
+    // Persist success so refresh doesn't ask again (optional)
+    const KEY_OK = 'gate_ok_v1';
+
+    function logGuess(guess, outcome) {
       try {
         fetch(WEBAPP, {
-          method:'POST',
-          mode:'no-cors',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ guess:"[FOUND_EGG]", ua:navigator.userAgent })
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guess,
+            outcome,               // "ok" | "hint" | "bad"
+            ts: new Date().toISOString(),
+            ua: navigator.userAgent
+          })
         });
-      } catch(_){}
-    
+      } catch (_) { /* ignore */ }
+    }
+
+    function showMessage(text, cls = 'warn') {
+      msg.className = 'msg ' + cls;
+      msg.textContent = text;
+    }
+
+    function unlock() {
+      // Hide gate, show game container, load main.js
+      gate.classList.add('hidden');
+      gameWrap.classList.remove('hidden');
+
+      // Dynamically load your Kaboom game (as an ES module)
+      const s = document.createElement('script');
+      s.type = 'module';
+      s.src = './main.js?v=' + Date.now(); // cache-bust on first load
+      s.onerror = () => showMessage('Could not load game (main.js). Check the file path.', 'warn');
+      document.body.appendChild(s);
+    }
+
+    function handleSubmit() {
+      const raw = pw.value;
+      const trimmedLower = raw.trim().toLowerCase();
+
+      if (!raw.trim()) return;
+
+      // 1) Hint path
+      if (trimmedLower === 'hint') {
+        showMessage('the hint is: what app did we use to play a silly game on a park bench at the end of date number 3 :)', 'ok');
+        logGuess('[HINT]', 'hint');
+        pw.value = '';
+        return;
+      }
+
+      // 2) Acceptable passwords
+      if (ACCEPT.has(norm(raw))) {
+        showMessage('Loading…', 'ok');
+        logGuess(raw, 'ok');
+        localStorage.setItem(KEY_OK, '1');
+        unlock();
+        return;
+      }
+
+      // 3) Wrong guess
+      showMessage('Password Reveal = 1 kiss', 'warn');
+      logGuess(raw, 'bad');
+      pw.select();
+    }
+
+    // Wire up UI
+    btn.addEventListener('click', handleSubmit);
+    pw.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSubmit();
     });
+
+    // If previously unlocked on this device, go straight in
+    if (localStorage.getItem(KEY_OK) === '1') {
+      unlock();
+    } else {
+      pw.focus();
+    }
   </script>
 </body>
 </html>
