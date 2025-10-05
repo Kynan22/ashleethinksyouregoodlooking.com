@@ -8,13 +8,14 @@
     :root {
       --bg:#0d0d0f; --ink:#eaeaea; --muted:#9aa0a6; --accent:#e63946; --card:#17171c; --ok:#42d392;
     }
-    * { box-sizing: border-box; }
-    html, body { height:100%; margin:0; }
+    * { box-sizing:border-box; }
+    html,body { height:100%; margin:0; }
     body {
       background:var(--bg); color:var(--ink);
       font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
       display:grid; place-items:center;
     }
+
     .gate {
       width:min(540px,92vw);
       background:var(--card);
@@ -27,24 +28,24 @@
     h1 { margin:0 0 12px; font-weight:700; letter-spacing:.5px; font-size:1.25rem; }
     p  { margin:.25rem 0 .75rem; color:var(--muted); }
     .row { display:flex; gap:10px; margin-top:.5rem; }
-    input[type="password"], input[type="text"] {
+    input[type="password"],input[type="text"]{
       flex:1; padding:14px; border-radius:10px; border:1px solid #32323a; outline:none;
       background:#0f0f13; color:var(--ink); font-size:1rem;
     }
-    input::placeholder { color:#5b5b66; }
-    button {
+    input::placeholder{color:#5b5b66;}
+    button{
       padding:14px 16px; border-radius:10px; border:1px solid #383842; background:#1d1d24;
       color:var(--ink); font-weight:700; cursor:pointer;
     }
-    button:active { transform:translateY(1px); }
-    .msg { margin-top:12px; min-height:1.5em; font-weight:700; }
-    .warn { color:var(--accent); }
-    .ok   { color:var(--ok); }
-    .note { margin-top:10px; color:var(--accent); font-weight:600; font-size:0.95rem; }
-    .hidden { display:none !important; }
+    button:active{transform:translateY(1px);}
+    .msg{margin-top:12px;min-height:1.5em;font-weight:700;}
+    .warn{color:var(--accent);}
+    .ok{color:var(--ok);}
+    .note{margin-top:10px;color:var(--accent);font-weight:600;font-size:0.95rem;}
+    .hidden{display:none!important;}
 
-    /* --- Responsive Game Scaling (25% smaller) --- */
-    .game-wrap {
+    /* --- Strongly Reduced Game Size (~60% smaller) --- */
+    .game-wrap{
       width:100vw;
       height:100svh;
       display:flex;
@@ -54,17 +55,14 @@
       overflow:hidden;
     }
 
-    canvas {
+    canvas{
       display:block;
       border-radius:8px;
-
-      /* Reduced from 90vw → 67.5vw and 85svh → 63.75svh (~25% smaller) */
-      width:min(67.5vw, calc(67.5svh * (9 / 11)));
-      height:min(63.75svh, calc(67.5vw * (11 / 9)));
-
+      /* was 90vw/85svh → now 36vw/34svh (~40% original size) */
+      width:min(36vw,calc(36svh*(9/11)));
+      height:min(34svh,calc(36vw*(11/9)));
       max-width:900px;
       max-height:1100px;
-
       aspect-ratio:9/11;
       touch-action:none;
     }
@@ -86,23 +84,21 @@
   <div id="game" class="game-wrap hidden" role="main" aria-label="Game"></div>
 
   <script>
-    const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
-    const $ = (q) => document.querySelector(q);
-    const gate = $('#gate');
-    const gameWrap = $('#game');
-    const pw = $('#pw');
-    const btn = $('#go');
-    const msg = $('#msg');
-
-    const norm = (s) => s.trim().toLowerCase().replace(/\s+/g,'');
-    const ACCEPT = new Set(['uber','ubergame']);
-    const KEY_OK = 'gate_ok_v1';
+    const WEBAPP='https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
+    const $=(q)=>document.querySelector(q);
+    const gate=$('#gate');
+    const gameWrap=$('#game');
+    const pw=$('#pw');
+    const btn=$('#go');
+    const msg=$('#msg');
+    const norm=(s)=>s.trim().toLowerCase().replace(/\s+/g,'');
+    const ACCEPT=new Set(['uber','ubergame']);
+    const KEY_OK='gate_ok_v1';
 
     function logGuess(guess,outcome){
-      try {
+      try{
         fetch(WEBAPP,{
-          method:'POST',
-          mode:'no-cors',
+          method:'POST',mode:'no-cors',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({guess,outcome,ts:new Date().toISOString(),ua:navigator.userAgent})
         });
