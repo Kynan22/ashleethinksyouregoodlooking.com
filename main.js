@@ -1,88 +1,58 @@
 import kaboom from "https://unpkg.com/kaboom@3000.1.17/dist/kaboom.mjs";
-
-// --- Choose a canvas size that fits the device without CSS scaling ---
-const TARGET_W = 900;
-const TARGET_H = 1100;
-const ASPECT   = TARGET_W / TARGET_H;
-
-function computeGameSize() {
-  // Prefer the container size if available (prevents odd sizes on some mobile browsers)
-  const root = document.getElementById("kaboomRoot");
-  let vw = window.innerWidth || TARGET_W;
-  let vh = window.innerHeight || TARGET_H;
-
-  if (root) {
-    const rect = root.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) {
-      vw = Math.min(rect.width, TARGET_W);
-      vh = Math.min(rect.height || window.innerHeight, TARGET_H);
-    }
-  }
-
-  // fit to aspect (no CSS scale)
-  let w = Math.floor(vw);
-  let h = Math.floor(w / ASPECT);
-  if (h > vh) { h = Math.floor(vh); w = Math.floor(h * ASPECT); }
-
-  // ensure minimums
-  w = Math.max(360, w);
-  h = Math.max(440, h);
-  return { w, h };
-}
-
-const { w: GAME_W, h: GAME_H } = computeGameSize();
-
-// Mount into the page container
 kaboom({
-  width: GAME_W,
-  height: GAME_H,
+  width: 900,
+  height: 1100,
   background: [135, 206, 235],
   font: "gf",
-  root: document.getElementById("kaboomRoot"),
-  crisp: true,
+  root: document.getElementById("game"), // ensures canvas is inside game container
 });
 
 debug.inspect = false;
 setGravity(1700);
 
-// Make sure the canvas catches touch/pointer events
-// (kaboom creates the canvas synchronously), so patch it now.
-const rootEl = document.getElementById("kaboomRoot");
-const canvas = rootEl.querySelector("canvas");
-if (canvas) {
-  canvas.style.touchAction = "none";         // make sure touches hit the canvas
-  canvas.style.webkitTapHighlightColor = "transparent";
-  canvas.style.userSelect = "none";
-  canvas.style.pointerEvents = "auto";
-}
-
 // ---- ASSETS ----
-loadFont("gf", "https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/Super.ttf");
+loadFont(
+  "gf",
+  "https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/Super.ttf"
+);
+
 loadSprite("pansy",   "https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/pansy_small.png");
 loadSprite("pizza",   "https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/pizza_small.png");
-loadSprite("biscoff","https://raw.githubusercontent.com/Kynan22/ashleethinksyourgoodlooking.com/refs/heads/main/biscoff.png").catch(()=>{}); // tolerate missing
+loadSprite("biscoff","https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/biscoff.png");
 loadSprite("heart",   "https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/heart2.png");
-loadSpriteAtlas("https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/newsprite2.png", {
-  gizmo: {
-    x: 0, y: 0, width: 32 * 13, height: 96, sliceX: 13, sliceY: 3,
-    anims: {
-      idle:   { from: 13, to: 18, speed: 7, loop: true },
-      jump:   { from: 3,  to: 12, speed: 7, loop: false },
-      crouch: { from: 26, to: 37, speed: 17, loop: false },
-    },
-  },
-});
 
-// ---------- OUTLINED TEXT ----------
+loadSpriteAtlas(
+  "https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/newsprite2.png",
+  {
+    gizmo: {
+      x: 0, y: 0, width: 32 * 13, height: 96, sliceX: 13, sliceY: 3,
+      anims: {
+        idle:   { from: 13, to: 18, speed: 7, loop: true },
+        jump:   { from: 3,  to: 12, speed: 7, loop: false },
+        crouch: { from: 26, to: 37, speed: 17, loop: false },
+      },
+    },
+  }
+);
+
+// ---------- OUTLINED TEXT (center-anchored & symmetric) ----------
 function outlinedText(
   str,
-  { size = 50, fill = rgb(255,255,255), stroke = rgb(0,0,0), strokePx = 3,
-    pos: p = vec2(0,0), fixedUI = false, zIndex = 10, font = "gf" } = {},
+  {
+    size = 50,
+    fill = rgb(255, 255, 255),
+    stroke = rgb(0, 0, 0),
+    strokePx = 3,
+    pos: p = vec2(0, 0),
+    fixedUI = false,
+    zIndex = 10,
+    font = "gf",
+  } = {}
 ) {
   const offs = [
-    vec2(-1,-1), vec2(0,-1), vec2(1,-1),
-    vec2(-1, 0),             vec2(1, 0),
-    vec2(-1, 1), vec2(0, 1), vec2(1, 1),
+    vec2(-1, -1), vec2(0, -1), vec2(1, -1),
+    vec2(-1,  0),               vec2(1,  0),
+    vec2(-1,  1), vec2(0,  1), vec2(1,  1),
   ].map(o => o.scale(strokePx));
 
   const flags = fixedUI ? [fixed()] : [];
@@ -106,7 +76,7 @@ function outlinedText(
             anchor("center"),
             z(zIndex - 1),
             ...flags,
-          ]),
+          ])
         );
       },
       update() {
@@ -115,73 +85,73 @@ function outlinedText(
           s.pos = this.pos.add(offs[i]);
           s.z = this.z - 1;
           s.text = this.text;
+          // NEW: keep hidden state in sync so outlines vanish too
           s.hidden = this.hidden;
         }
       },
-      destroy() { this._shadows.forEach((s) => destroy(s)); },
+      destroy() {
+        this._shadows.forEach((s) => destroy(s));
+      },
     },
   ]);
   return main;
 }
 
-// ---------- In-canvas button ----------
-function makeButton(label, centerX, centerY, onPress, { w = 260, h = 96, zBase = 1000 } = {}) {
-  const hit = add([
+// ---------- SHARED UI BUTTON ----------
+function makeButton(label, centerX, centerY, onPress, { w = 380, h = 300, zBase = 1000 } = {}) {
+  const btn = add([
     rect(w, h, { radius: 12 }),
-    pos(centerX - w/2, centerY - h/2),
-    area({ cursor: "pointer" }),
+    pos(centerX - w / 2, centerY - h / 2),
+    area(),
     color(60, 60, 90),
     fixed(),
     z(zBase),
   ]);
 
   const lbl = outlinedText(label, {
-    size: Math.min(56, Math.floor(h * 0.52)),
-    pos: vec2(centerX, centerY + 4),
+    size: Math.min(120, Math.floor(h * 0.4)),
+    pos: vec2(centerX, centerY + 6),
     fill: rgb(255, 255, 255),
     stroke: rgb(0, 0, 0),
-    strokePx: 3,
+    strokePx: 4,
     zIndex: zBase + 1,
     fixedUI: true,
   });
 
-  // Kaboom's area should map touch -> click, but attach both to be extra-robust:
-  hit.onClick(onPress);
-  // onTouchStart doesn't exist on older kaboom builds; use a pointerdown fallback:
-  hit.onPointerDown?.(onPress);
-
-  return { hit, lbl };
+  btn.onClick(onPress);
+  return { btn, lbl };
 }
 
-/* ======================= START ======================= */
+// ======================= START SCENE =======================
 scene("start", () => {
   outlinedText("GIZMO RUN", {
-    size: 96,
-    pos: vec2(width() / 2, height() / 2 - 140),
+    size: 120,
+    pos: vec2(width() / 2, height() / 2 - 200),
     fill: rgb(255, 255, 255),
     stroke: rgb(0, 0, 0),
     strokePx: 4,
+    zIndex: 5,
     fixedUI: true,
   });
 
   outlinedText("Help Gizmo collect items\nwhile you dodge objects!", {
-    size: 40,
-    pos: vec2(width() / 2, height() / 2 - 30),
+    size: 48,
+    pos: vec2(width() / 2, height() / 2 - 70),
     fill: rgb(46, 221, 11),
     stroke: rgb(0, 0, 0),
     strokePx: 3,
+    zIndex: 5,
     fixedUI: true,
   });
-
-  makeButton("PLAY", width() / 2, height() / 2 + 80, () => go("game"));
+  window.__kbStart = () => go("game");
+  makeButton("PLAY", width() / 2, height() / 2 + 100, () => go("game"), {
+    w: 420, h: 160, zBase: 1000,
+  });
 });
 
-/* ======================= GAME ======================= */
+// ======================= GAME SCENE =======================
 scene("game", () => {
-  // -------------------------
-  // Consolidated (no duplicates)
-  // -------------------------
-  const FLOOR_Y = Math.min(780, height() - 320);
+  const FLOOR_Y = 780;
 
   // Ground
   add([
@@ -192,18 +162,18 @@ scene("game", () => {
     body({ isStatic: true }),
   ]);
 
-  // Lives
+  // --- LIVES (hearts) ---
   let lives = 3;
   let heartSprites = [];
   function rebuildHearts() {
     heartSprites.forEach(h => destroy(h));
     heartSprites = [];
-    const margin = 16;
-    const gap = 72;
+    const margin = 20;
+    const gap = 85;
     for (let i = 0; i < lives; i++) {
       const spr = add([
         sprite("heart"),
-        pos(width() - margin - i * gap - 120, 36),
+        pos(width() - margin - i * gap - 140, 40),
         scale(0.15),
         fixed(),
         z(999),
@@ -213,33 +183,37 @@ scene("game", () => {
   }
   rebuildHearts();
 
-  // Score + messages
+  // --- SCORE / MESSAGES ---
   let score = 0;
 
   const scoreText = outlinedText("Score: 0", {
-    size: 50,
-    pos: vec2(180, 80),
+    size: 70,
+    pos: vec2(200, 95),
     fill: rgb(255, 255, 255),
     stroke: rgb(0, 0, 0),
     strokePx: 3,
+    zIndex: 20,
     fixedUI: true,
   });
 
-  const topY = 360;
+  // NEW: split messages
+  const topY = 400; // (used again below; keep consistent with slots)
   const hitMsg = outlinedText("", {
-    size: 56,
-    pos: vec2(width() / 2, topY - 100),
+    size: 65,
+    pos: vec2(width() / 2, topY - 120), // OUCH above collected letters
     fill: rgb(255, 0, 0),
     stroke: rgb(0, 0, 0),
     strokePx: 3,
+    zIndex: 20,
     fixedUI: true,
   });
   const centerMsg = outlinedText("", {
-    size: 56,
-    pos: vec2(width() / 2, topY),
+    size: 65,
+    pos: vec2(width() / 2, topY), // exactly where collected letters sit
     fill: rgb(255, 0, 0),
     stroke: rgb(0, 0, 0),
     strokePx: 3,
+    zIndex: 20,
     fixedUI: true,
   });
 
@@ -250,7 +224,7 @@ scene("game", () => {
     hitMsgTimer = seconds;
   }
 
-  // Player
+  // --- PLAYER ---
   const normalBox = { w: 17, h: 20, off: vec2(8, 10) };
   const duckBox   = { w: 17, h:  5, off: vec2(8, 25) };
 
@@ -275,6 +249,7 @@ scene("game", () => {
       player.use(area({ shape: new Rect(vec2(normalBox.off), normalBox.w, normalBox.h) }));
     }
   }
+
   function startDuck() {
     if (gameOver) return;
     if (player.isGrounded() && !isDucking) {
@@ -290,7 +265,9 @@ scene("game", () => {
       });
     }
   }
-
+  // EXPOSE FOR HUD (so DOM buttons can call into the game)
+  window.__kbJump = () => doJump();
+  window.__kbDuck = () => startDuck();
   onKeyPress("up", doJump);
   onKeyPress("down", startDuck);
 
@@ -301,11 +278,7 @@ scene("game", () => {
     }
   });
 
-  // In-canvas mobile buttons (fixed to screen)
-  makeButton("JUMP", width()/2 - 140, height() - 70, doJump, { w: 220, h: 90 });
-  makeButton("DUCK", width()/2 + 140, height() - 70, startDuck, { w: 220, h: 90 });
-
-  // Spawns & letter logic (single set of variables)
+  // --- SPAWN / DIFFICULTY ---
   let speed = 450;
   let globalCooldown = 3;
   const SINGLE_COOLDOWN  = 4;
@@ -315,37 +288,71 @@ scene("game", () => {
   let biscoffTimer = 0, biscoffDelay = 3.8;
   let pizzaTimer   = 0, pizzaDelay   = 5;
 
-  function addDodgeScore() { score++; scoreText.text = "Score: " + score; }
+  // --- SCORE HELPERS ---
+  function addDodgeScore() {
+    score++;
+    scoreText.text = "Score: " + score;
+  }
 
+  // =======================
+  // LETTERS: GIRLFRIEND?
+  // =======================
   const TARGET = "GIRLFRIEND?".split("");
   const collected = Array(TARGET.length).fill(false);
+
   let lettersEnabled = false;
   const LETTERS_UNLOCK_SCORE = 1;
 
-  const letterSlotsByChar = TARGET.reduce((m, ch, i) => ((m[ch] ??= []).push(i), m), {});
+  const letterSlotsByChar = TARGET.reduce((map, ch, idx) => {
+    if (!map[ch]) map[ch] = [];
+    map[ch].push(idx);
+    return map;
+  }, {});
+
+  // UI slots (white)
   const slots = [];
-  const startX = 110, gapX = 56;
+  const startX = 130, gapX = 60;
   for (let i = 0; i < TARGET.length; i++) {
     const t = outlinedText("", {
-      size: 56,
+      size: 65,
       pos: vec2(startX + i * gapX, topY),
       fill: rgb(46, 221, 11),
       stroke: rgb(0, 0, 0),
       strokePx: 3,
+      zIndex: 10,
       fixedUI: true,
     });
     slots.push(t);
   }
-  function hideLetterSlots(){ slots.forEach(s => s.hidden = true); }
-  function showLetterSlots(){ slots.forEach(s => s.hidden = false); }
-  function resetLettersProgress(){ for (let i=0;i<collected.length;i++){ collected[i]=false; slots[i].text=""; } showLetterSlots(); }
 
-  let letterTimer = 0, letterDelay = 3.5, lettersCooldown = 0;
-  let timeSinceStart = 0, lastNonLetterSpawnAt = -999;
-  let nonLetterBlockUntil = 0, letterBlockUntil = 0;
-  const LETTER_SAFE_WINDOW = 1.8;
+  function hideLetterSlots() {
+    slots.forEach(s => s.hidden = true);
+  }
+  function showLetterSlots() {
+    slots.forEach(s => s.hidden = false);
+  }
+  function resetLettersProgress() {
+    for (let i = 0; i < collected.length; i++) {
+      collected[i] = false;
+      slots[i].text = "";
+    }
+    showLetterSlots();
+  }
 
-  function remainingCharsPool(){
+  // letter spawn timing & spacing
+  let letterTimer = 0;
+  let letterDelay = 3.5;
+  let lettersCooldown = 0;
+  let timeSinceStart = 0;
+  let lastNonLetterSpawnAt = -999;
+
+  // Blocks for spacing logic
+  let nonLetterBlockUntil = 0;  // after letters, block obstacles briefly
+  let letterBlockUntil    = 0;  // during pizza trio, block letters
+
+  const LETTER_SAFE_WINDOW = 1.8; // seconds of safety after a letter spawns (slightly bigger)
+
+  function remainingCharsPool() {
     const pool = [];
     for (let i = 0; i < TARGET.length; i++) if (!collected[i]) pool.push(TARGET[i]);
     const others = pool.filter((ch) => ch !== "?");
@@ -361,7 +368,7 @@ scene("game", () => {
     const y = lanes[Math.floor(Math.random() * lanes.length)];
 
     const o = outlinedText(ch, {
-      size: 70,
+      size: 85,
       pos: vec2(width() + 40, y),
       fill: rgb(46, 221, 11),
       stroke: rgb(0, 0, 0),
@@ -380,56 +387,103 @@ scene("game", () => {
     });
 
     lettersCooldown = 3.6;
+    // Block incoming obstacles for a bit so this letter is safe to reach
     nonLetterBlockUntil = timeSinceStart + LETTER_SAFE_WINDOW;
   }
 
+  // --- SPAWNERS ---
   function spawnPansy() {
-    const o = add([ sprite("pansy"), pos(width()+40, FLOOR_Y-50), scale(2.4), area({ shape:new Rect(vec2(0,10),15,15) }), "pansy" ]);
-    o.onUpdate(() => { o.move(-speed, 0); if (o.pos.x< -100){ destroy(o); addDodgeScore(); } });
-    globalCooldown = SINGLE_COOLDOWN; lastNonLetterSpawnAt = timeSinceStart;
+    const o = add([
+      sprite("pansy"),
+      pos(width() + 40, FLOOR_Y - 50),
+      scale(2.4),
+      area({ shape: new Rect(vec2(0, 10), 15, 15) }),
+      "pansy",
+    ]);
+    o.onUpdate(() => {
+      o.move(-speed, 0);
+      if (o.pos.x < -100) { destroy(o); addDodgeScore(); }
+    });
+    globalCooldown = SINGLE_COOLDOWN;
+    lastNonLetterSpawnAt = timeSinceStart;
   }
+
   function spawnBiscoff() {
-    const o = add([ sprite("biscoff"), pos(width()+40, FLOOR_Y-125), scale(2.4), area({ shape:new Rect(vec2(0,15),15,15) }), "biscoff" ]);
-    o.onUpdate(() => { o.move(-speed, 0); if (o.pos.x< -100){ destroy(o); addDodgeScore(); } });
-    globalCooldown = SINGLE_COOLDOWN; lastNonLetterSpawnAt = timeSinceStart;
+    const o = add([
+      sprite("biscoff"),
+      pos(width() + 40, FLOOR_Y - 125),
+      scale(2.4),
+      area({ shape: new Rect(vec2(0, 15), 15, 15) }),
+      "biscoff",
+    ]);
+    o.onUpdate(() => {
+      o.move(-speed, 0);
+      if (o.pos.x < -100) { destroy(o); addDodgeScore(); }
+    });
+    globalCooldown = SINGLE_COOLDOWN;
+    lastNonLetterSpawnAt = timeSinceStart;
   }
-  function spawnPizza(high=false) {
-    const yHigh = FLOOR_Y - 115, yLow = FLOOR_Y - 58;
-    const o = add([ sprite("pizza"), pos(width()+40, high?yHigh:yLow), scale(2.4), area({ shape:new Rect(vec2(0,10),19,13) }), "pizza" ]);
-    o.onUpdate(() => { o.move(-speed, 0); if (o.pos.x< -100){ destroy(o); addDodgeScore(); } });
+
+  function spawnPizza(high = false) {
+    const yHigh = FLOOR_Y - 115;
+    const yLow  = FLOOR_Y - 58;
+    const o = add([
+      sprite("pizza"),
+      pos(width() + 40, high ? yHigh : yLow),
+      scale(2.4),
+      area({ shape: new Rect(vec2(0, 10), 19, 13) }),
+      "pizza",
+    ]);
+    o.onUpdate(() => {
+      o.move(-speed, 0);
+      if (o.pos.x < -100) { destroy(o); addDodgeScore(); }
+    });
   }
+
   function spawnPizzaTriplet() {
     const patterns = [
       ["J","J","J"], ["J","D","J"], ["D","J","D"],
       ["J","J","D"], ["D","J","J"], ["J","D","D"],
     ];
     const pat = choose(patterns);
+
     const desiredGapPx = 360;
     const gapTime = desiredGapPx / speed;
-    letterBlockUntil = timeSinceStart + (gapTime * 2) + 0.7;
+
+    // When a trio starts, block letters long enough to cover the next 2 spawns + padding
+    letterBlockUntil = timeSinceStart + (gapTime * 2) + 0.7; // <-- bigger buffer for 2nd & 3rd pizza
 
     spawnPizza(pat[0] === "D");
-    let nextIndex = 1, elapsed = 0;
-    const h = onUpdate(() => {
-      if (gameOver){ h.cancel(); return; }
+
+    let nextIndex = 1;
+    let elapsed = 0;
+
+    const handle = onUpdate(() => {
+      if (gameOver) { handle.cancel(); return; }
       elapsed += dt();
-      while (nextIndex < pat.length && elapsed >= nextIndex*gapTime) {
+      while (nextIndex < pat.length && elapsed >= nextIndex * gapTime) {
         spawnPizza(pat[nextIndex] === "D");
         nextIndex++;
       }
-      if (nextIndex >= pat.length) h.cancel();
+      if (nextIndex >= pat.length) handle.cancel();
     });
-    globalCooldown = TRIPLET_COOLDOWN; lastNonLetterSpawnAt = timeSinceStart;
+
+    globalCooldown = TRIPLET_COOLDOWN;
+    lastNonLetterSpawnAt = timeSinceStart;
   }
 
+  // --- HITS & LIVES ---
   function loseLifeAndCheck(o) {
     destroy(o);
     showHitMessage("OUCH!", 1);
+
     lives = Math.max(0, lives - 1);
     rebuildHearts();
 
     if (lives <= 0) {
+      // On true game over, wipe letter progress
       resetLettersProgress();
+
       gameOver = true;
       centerMsg.text = "GAME OVER";
       centerMsgTimer = 4;
@@ -438,77 +492,110 @@ scene("game", () => {
     }
   }
 
-  player.onCollide("pansy", loseLifeAndCheck);
+  player.onCollide("pansy",   loseLifeAndCheck);
   player.onCollide("biscoff", loseLifeAndCheck);
-  player.onCollide("pizza", loseLifeAndCheck);
+  player.onCollide("pizza",   loseLifeAndCheck);
 
   player.onCollide("letter", (o) => {
     if (gameOver) return;
     const ch = o.ch;
+
     const bucket = letterSlotsByChar[ch] || [];
     for (const idx of bucket) {
-      if (!collected[idx]) { collected[idx] = true; slots[idx].text = TARGET[idx]; break; }
+      if (!collected[idx]) {
+        collected[idx] = true;
+        slots[idx].text = TARGET[idx];
+        break;
+      }
     }
     destroy(o);
 
+    // Completed phrase -> hide white progress & show proposal at the same Y
     if (collected.every(Boolean)) {
       hideLetterSlots();
       gameOver = true;
-      centerMsg.text = "Be My Girlfriend? :)";
-      centerMsgTimer = 20;
+      centerMsg.text = "Be My Girlfriend? :)"; // same vertical as slots
+      centerMsgTimer = 20.0;
       speed = 0;
     }
   });
 
-  // Loop
+  // --- LOOP ---
   onUpdate(() => {
     if (gameOver) {
-      if (hitMsgTimer    > 0){ hitMsgTimer    -= dt(); if (hitMsgTimer    <= 0) hitMsg.text = ""; }
-      if (centerMsgTimer > 0){ centerMsgTimer -= dt(); if (centerMsgTimer <= 0) centerMsg.text = ""; }
+      if (hitMsgTimer > 0)   { hitMsgTimer   -= dt(); if (hitMsgTimer   <= 0) hitMsg.text = ""; }
+      if (centerMsgTimer > 0){ centerMsgTimer-= dt(); if (centerMsgTimer<= 0) centerMsg.text = ""; }
       return;
     }
 
     timeSinceStart += dt();
 
-    if (hitMsgTimer    > 0){ hitMsgTimer    -= dt(); if (hitMsgTimer    <= 0) hitMsg.text = ""; }
-    if (centerMsgTimer > 0){ centerMsgTimer -= dt(); if (centerMsgTimer <= 0) centerMsg.text = ""; }
+    if (hitMsgTimer > 0)    { hitMsgTimer    -= dt(); if (hitMsgTimer    <= 0) hitMsg.text = ""; }
+    if (centerMsgTimer > 0) { centerMsgTimer -= dt(); if (centerMsgTimer <= 0) centerMsg.text = ""; }
 
     if (globalCooldown > 0) globalCooldown -= dt();
     if (lettersCooldown > 0) lettersCooldown -= dt();
 
+    // PIZZA TRIO (only if we're not inside the letter safe window)
     pizzaTimer += dt();
     if (globalCooldown <= 0 && timeSinceStart >= nonLetterBlockUntil && pizzaTimer >= pizzaDelay) {
-      pizzaTimer = 0; pizzaDelay = rand(5, 7); spawnPizzaTriplet();
+      pizzaTimer = 0;
+      pizzaDelay = rand(5, 7);
+      spawnPizzaTriplet();
     }
 
+    // PANSY
     pansyTimer += dt();
     if (globalCooldown <= 0 && timeSinceStart >= nonLetterBlockUntil && pansyTimer >= pansyDelay) {
-      pansyTimer = 0; spawnPansy(); if (pansyDelay > 1.2) pansyDelay -= 0.02;
+      pansyTimer = 0;
+      spawnPansy();
+      if (pansyDelay > 1.2) pansyDelay -= 0.02;
     }
 
+    // BISCOFF
     biscoffTimer += dt();
     if (timeSinceStart >= nonLetterBlockUntil && biscoffTimer >= biscoffDelay) {
-      if (globalCooldown <= 0.5) { biscoffTimer = 0; biscoffDelay = rand(3.8, 6.0); spawnBiscoff(); }
-    }
-
-    if (!lettersEnabled && score >= LETTERS_UNLOCK_SCORE) lettersEnabled = true;
-    if (lettersEnabled) {
-      letterTimer += dt();
-      const letterGapSinceLast = 1.25;
-      const timeSinceNonLetter = timeSinceStart - lastNonLetterSpawnAt;
-      if (timeSinceStart >= letterBlockUntil && letterTimer >= letterDelay && lettersCooldown <= 0 && timeSinceNonLetter >= letterGapSinceLast) {
-        letterTimer = 0; letterDelay = rand(3.0, 5.0); spawnLetter();
+      if (globalCooldown <= 0.5) {
+        biscoffTimer = 0;
+        biscoffDelay = rand(3.8, 6.0);
+        spawnBiscoff();
       }
     }
 
+    // LETTERS (now also respect letterBlockUntil so they don't spawn during a trio)
+    if (!lettersEnabled && score >= LETTERS_UNLOCK_SCORE) lettersEnabled = true;
+    if (lettersEnabled) {
+      letterTimer += dt();
+
+      const letterGapSinceLast = 1.25;
+      const timeSinceNonLetter = timeSinceStart - lastNonLetterSpawnAt;
+
+      if (
+        timeSinceStart >= letterBlockUntil &&         // NEW: don't spawn letters during pizza trios
+        letterTimer >= letterDelay &&
+        lettersCooldown <= 0 &&
+        timeSinceNonLetter >= letterGapSinceLast
+      ) {
+        letterTimer = 0;
+        letterDelay = rand(3.0, 5.0);
+        spawnLetter();
+      }
+    }
+
+    // speed ramp
     speed += dt() * 2.1;
 
+    // keep idle after landing
     if (player.isGrounded() && player.curAnim() !== "crouch" && player.curAnim() !== "idle") {
       player.play("idle");
       player.use(area({ shape: new Rect(vec2(normalBox.off), normalBox.w, normalBox.h) }));
       isDucking = false;
     }
   });
+
+  // --- MOBILE BUTTONS (bottom) ---
+  makeButton("JUMP", 225, 945, () => doJump(),  { w: 430, h: 280 });
+  makeButton("DUCK", 670, 945, () => startDuck(), { w: 430, h: 280 });
 });
 
 // Boot into start screen
