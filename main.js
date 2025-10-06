@@ -143,7 +143,6 @@ scene("start", () => {
     zIndex: 5,
     fixedUI: true,
   });
-  window.__kbStart = () => go("game");
   makeButton("PLAY", width() / 2, height() / 2 + 100, () => go("game"), {
     w: 420, h: 160, zBase: 1000,
   });
@@ -265,9 +264,6 @@ scene("game", () => {
       });
     }
   }
-  // EXPOSE FOR HUD (so DOM buttons can call into the game)
-  window.__kbJump = () => doJump();
-  window.__kbDuck = () => startDuck();
   onKeyPress("up", doJump);
   onKeyPress("down", startDuck);
 
