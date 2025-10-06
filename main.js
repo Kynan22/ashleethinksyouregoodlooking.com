@@ -265,7 +265,9 @@ scene("game", () => {
       });
     }
   }
-
+  // EXPOSE FOR HUD (so DOM buttons can call into the game)
+  window.__kbJump = () => doJump();
+  window.__kbDuck = () => startDuck();
   onKeyPress("up", doJump);
   onKeyPress("down", startDuck);
 
