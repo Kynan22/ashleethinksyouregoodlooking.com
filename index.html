@@ -2,20 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Lock zoom & give real viewport on mobile -->
+  <!-- Lock zoom on mobile to avoid unexpected scaling -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Hello :)</title>
   <style>
     :root { --bg:#0d0d0f; --ink:#eaeaea; --muted:#9aa0a6; --accent:#e63946; --card:#17171c; --ok:#42d392; }
     * { box-sizing: border-box; }
-    html, body { height:100%; margin:0; }
-    body {
-      background:var(--bg); color:var(--ink);
-      font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
-      display:grid; place-items:center;
-    }
+    html, body { margin:0; padding:0; background:var(--bg); color:var(--ink); font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; }
 
-    /* ---------- Gate (password) ---------- */
+    /* ---- Gate ---- */
+    .gate-wrap { min-height:100svh; display:grid; place-items:center; padding:16px; }
     .gate {
       width:min(540px, 92vw);
       background:var(--card);
@@ -28,7 +24,7 @@
     h1 { margin:0 0 12px; font-weight:700; letter-spacing:.5px; font-size:1.25rem; }
     p  { margin:.25rem 0 .75rem; color:var(--muted); }
     .row { display:flex; gap:10px; margin-top:.5rem; }
-    input[type="password"], input[type="text"] {
+    input[type="password"] {
       flex:1; padding:14px; border-radius:10px; border:1px solid #32323a; outline:none;
       background:#0f0f13; color:var(--ink); font-size:1rem;
     }
@@ -36,111 +32,52 @@
     button {
       padding:14px 16px; border-radius:10px; border:1px solid #383842; background:#1d1d24;
       color:var(--ink); font-weight:700; cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     button:active { transform: translateY(1px); }
-    .msg { margin-top:12px; min-height:1.5em; font-weight:700; }
+    .msg  { margin-top:12px; min-height:1.5em; font-weight:700; }
+    .note { margin-top:10px; color:var(--accent); font-weight:600; font-size:0.95rem; }
     .warn { color:var(--accent); }
     .ok   { color:var(--ok); }
-    .note { margin-top:10px; color:var(--accent); font-weight:600; font-size:0.95rem; }
     .hidden { display:none !important; }
 
-    /* ---------- Game area ---------- */
-    #game {
-      width:100svw; height:100svh;
-      position:relative;
-      display:flex; align-items:center; justify-content:center;
-      background:#000; overflow:hidden;
-    }
-    #game > canvas {
-      display:block; border-radius:8px;
-      touch-action:none; pointer-events:auto;
-      -webkit-tap-highlight-color:transparent;
-    }
-
-    /* --- Start overlay (big central PLAY) --- */
-    .start-hud {
-      position:absolute; inset:0;
-      display:flex; align-items:center; justify-content:center;
-      pointer-events:none; /* container ignores; child re-enables */
-    }
-    .start-hud button {
-      pointer-events:auto;
-      min-width:50vw;
-      padding:clamp(14px, 2.6vh, 22px);
-      font-size:clamp(20px, 2.6vh, 26px);
-      border-radius:14px;
-      border:2px solid #444;
-      background:#1d1d24e0;
-      color:var(--ink); font-weight:900;
-      backdrop-filter: blur(2px);
-      -webkit-tap-highlight-color:transparent;
-      touch-action:manipulation;
-    }
-
-    /* --- Action HUD (bottom JUMP/DUCK) --- */
-    .hud {
-      position:absolute; inset:auto 0 2.5vh 0;
-      display:flex; justify-content:space-evenly; align-items:center;
-      gap:3vw; padding:0 3vw;
-      pointer-events:none;
-    }
-    .hud button {
-      pointer-events:auto;
-      min-width:32vw;
-      padding:clamp(10px, 2.2vh, 18px);
-      font-size:clamp(16px, 2.2vh, 20px);
-      border-radius:14px;
-      border:2px solid #444;
-      background:#1d1d24cc;
-      color:var(--ink); font-weight:800;
-      backdrop-filter: blur(2px);
-      -webkit-tap-highlight-color:transparent;
-      touch-action:manipulation;
-    }
+    /* ---- Game area ---- */
+    .game-wrap { min-height:100svh; display:flex; align-items:center; justify-content:center; padding:8px; }
+    #kaboomRoot canvas { display:block; border-radius:10px; background:#000; }
   </style>
 </head>
 <body>
   <!-- Gate -->
-  <section id="gate" class="gate" aria-label="Access">
-    <h1>Enter Password</h1>
-    <div class="row">
-      <input id="pw" type="password" inputmode="text" autocomplete="off" spellcheck="false" placeholder="password…" />
-      <button id="go">OK</button>
-    </div>
-    <p class="note">Password Reveal = 1 Kiss</p>
-    <div id="msg" class="msg" aria-live="polite"></div>
-  </section>
+  <div id="gateWrap" class="gate-wrap">
+    <section id="gate" class="gate" aria-label="Access">
+      <h1>Enter Password</h1>
+      <div class="row">
+        <input id="pw" type="password" inputmode="text" autocomplete="off" spellcheck="false" placeholder="password…" />
+        <button id="go">OK</button>
+      </div>
+      <p class="note">Password Reveal = 1 Kiss</p>
+      <div id="msg" class="msg" aria-live="polite"></div>
+    </section>
+  </div>
 
   <!-- Game mount -->
-  <div id="game" class="hidden" role="main" aria-label="Game">
-    <!-- Start HUD -->
-    <div id="startHud" class="start-hud hidden" aria-hidden="true">
-      <button id="hudStart" type="button">PLAY</button>
-    </div>
-    <!-- Action HUD -->
-    <div id="hud" class="hud hidden" aria-hidden="true">
-      <button id="hudJump" type="button">JUMP</button>
-      <button id="hudDuck" type="button">DUCK</button>
-    </div>
+  <div id="gameWrap" class="game-wrap hidden" role="main" aria-label="Game">
+    <div id="kaboomRoot"></div>
   </div>
 
   <script>
+    // Google Sheets endpoint (same)
     const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
     const KEY_OK = 'gate_ok_v1';
+
+    // Accept "uber", "ubergame", "uber game" (any case)
     const norm  = (s) => s.trim().toLowerCase().replace(/\s+/g, '');
-    const ACCEPT = new Set(['uber','ubergame']); // "uber game" also matched by norm
+    const ACCEPT = new Set(['uber','ubergame']);
 
-    const $  = (q) => document.querySelector(q);
-    const gate = $('#gate');
-    const game = $('#game');
-
-    const hud = $('#hud');
-    const hudJump = $('#hudJump');
-    const hudDuck = $('#hudDuck');
-
-    const startHud = $('#startHud');
-    const hudStart = $('#hudStart');
-
+    const $ = (q) => document.querySelector(q);
+    const gateWrap = $('#gateWrap');
+    const gameWrap = $('#gameWrap');
     const pw  = $('#pw');
     const btn = $('#go');
     const msg = $('#msg');
@@ -156,70 +93,15 @@
     }
     function showMessage(text, cls='warn'){ msg.className='msg '+cls; msg.textContent=text; }
 
-    // Fit the Kaboom canvas inside the visual viewport without stretching.
-    const GAME_W = 900, GAME_H = 1100, ASPECT = GAME_W / GAME_H;
-    function getViewportSize(){
-      const vv = window.visualViewport;
-      return vv ? { w: vv.width, h: vv.height } : { w: innerWidth, h: innerHeight };
-    }
-    function fitCanvas(cvs){
-      const { w, h } = getViewportSize();
-      const pad = Math.max(8, Math.min(w, h) * 0.03);
-      const availW = w - pad*2, availH = h - pad*2;
-      let cw, ch;
-      if (availW / availH > ASPECT) { ch = availH; cw = ch * ASPECT; }
-      else { cw = availW; ch = cw / ASPECT; }
-      cvs.style.width  = Math.floor(cw) + 'px';
-      cvs.style.height = Math.floor(ch) + 'px';
-    }
-
-    function afterKaboomInit(){
-      let tries = 0;
-      (function look(){
-        const cvs = document.querySelector('#game > canvas');
-        if (!cvs) { if (tries++ < 60) requestAnimationFrame(look); return; }
-        fitCanvas(cvs);
-        const onResize = () => fitCanvas(cvs);
-        addEventListener('resize', onResize);
-        if (visualViewport) visualViewport.addEventListener('resize', onResize);
-        addEventListener('orientationchange', onResize);
-
-        // Show START HUD now that canvas exists
-        startHud.classList.remove('hidden');
-        startHud.setAttribute('aria-hidden', 'false');
-
-        // Wire START → game
-        const call = (fn) => typeof window[fn] === 'function' && window[fn]();
-        const startHandler = (e) => {
-          e.preventDefault(); e.stopPropagation();
-          call('__kbStart');                  // calls go("game")
-          startHud.classList.add('hidden');   // hide start overlay
-          startHud.setAttribute('aria-hidden', 'true');
-          // show action HUD (jump/duck)
-          hud.classList.remove('hidden');
-          hud.setAttribute('aria-hidden', 'false');
-        };
-        hudStart.addEventListener('pointerdown', startHandler, { passive:false });
-        hudStart.addEventListener('click',       startHandler, { passive:false });
-
-        // Wire action HUD buttons
-        const handler = (fn) => (e) => { e.preventDefault(); e.stopPropagation(); call(fn); };
-        hudJump.addEventListener('pointerdown', handler('__kbJump'), {passive:false});
-        hudJump.addEventListener('click',       handler('__kbJump'), {passive:false});
-        hudDuck.addEventListener('pointerdown', handler('__kbDuck'), {passive:false});
-        hudDuck.addEventListener('click',       handler('__kbDuck'), {passive:false});
-      })();
-    }
-
     function unlock(){
-      gate.classList.add('hidden');
-      game.classList.remove('hidden');
+      gateWrap.classList.add('hidden');
+      gameWrap.classList.remove('hidden');
 
+      // Load the game module
       const s = document.createElement('script');
       s.type = 'module';
       s.src = './main.js?v=' + Date.now();
       s.onerror = () => showMessage('Could not load game (main.js).', 'warn');
-      s.onload  = () => afterKaboomInit();
       document.body.appendChild(s);
     }
 
@@ -229,7 +111,7 @@
       if (!raw.trim()) return;
 
       if (lower === 'hint') {
-        showMessage('the hint is: what app did we use to play a silly game on a park bench at the end of date number 3 :)','ok');
+        showMessage('the hint is: what app did we use to play a silly game on a park bench at the end of date number 3 :)', 'ok');
         logGuess('[HINT]', 'hint');
         pw.value = '';
         return;
