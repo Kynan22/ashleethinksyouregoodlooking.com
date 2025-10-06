@@ -85,6 +85,9 @@ function notifyScene(name) {
 // ======================= START SCENE =======================
 scene("start", () => {
   notifyScene("start");
+  // Re-show Play button whenever we return to menu
+  const hudPlay = document.getElementById("hudPlay");
+  if (hudPlay) hudPlay.style.display = "block";
 
   outlinedText("GIZMO RUN", {
     size: 120,
@@ -106,8 +109,11 @@ scene("start", () => {
     fixedUI: true,
   });
 
-  // Expose PLAY for DOM
-  window.__kbStart = () => go("game");
+  // When pressed, hide Play and start the game
+  window.__kbStart = () => {
+    if (hudPlay) hudPlay.style.display = "none";
+    go("game");
+  };
 });
 
 // ======================= GAME SCENE =======================
