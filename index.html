@@ -8,7 +8,7 @@
   <style>
     :root { --bg:#0d0d0f; --ink:#eaeaea; --muted:#9aa0a6; --accent:#e63946; --card:#17171c; --ok:#42d392; }
     * { box-sizing: border-box; }
-    html, body { margin:0; padding:0; background:var(--bg); color:var(--ink); font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; }
+    html, body { margin:0; padding:0; background:var(--bg); color:var(--ink); font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
 
     /* ---- Gate ---- */
     .gate-wrap { min-height:100svh; display:grid; place-items:center; padding:16px; }
@@ -27,6 +27,7 @@
     input[type="password"] {
       flex:1; padding:14px; border-radius:10px; border:1px solid #32323a; outline:none;
       background:#0f0f13; color:var(--ink); font-size:1rem;
+      -webkit-tap-highlight-color: transparent;
     }
     input::placeholder { color:#5b5b66; }
     button {
@@ -44,7 +45,7 @@
 
     /* ---- Game area ---- */
     .game-wrap { min-height:100svh; display:flex; align-items:center; justify-content:center; padding:8px; }
-    #kaboomRoot canvas { display:block; border-radius:10px; background:#000; }
+    #kaboomRoot canvas { display:block; border-radius:10px; background:#000; touch-action: none; -webkit-user-select: none; user-select: none; }
   </style>
 </head>
 <body>
@@ -54,7 +55,7 @@
       <h1>Enter Password</h1>
       <div class="row">
         <input id="pw" type="password" inputmode="text" autocomplete="off" spellcheck="false" placeholder="password…" />
-        <button id="go">OK</button>
+        <button id="go" type="button">OK</button>
       </div>
       <p class="note">Password Reveal = 1 Kiss</p>
       <div id="msg" class="msg" aria-live="polite"></div>
@@ -63,7 +64,7 @@
 
   <!-- Game mount -->
   <div id="gameWrap" class="game-wrap hidden" role="main" aria-label="Game">
-    <div id="kaboomRoot"></div>
+    <div id="kaboomRoot" style="width:100%;max-width:900px;"></div>
   </div>
 
   <script>
@@ -100,6 +101,7 @@
       // Load the game module
       const s = document.createElement('script');
       s.type = 'module';
+      // add cache-busting so you can iterate
       s.src = './main.js?v=' + Date.now();
       s.onerror = () => showMessage('Could not load game (main.js).', 'warn');
       document.body.appendChild(s);
@@ -120,7 +122,8 @@
         showMessage('Loading…', 'ok');
         logGuess(raw, 'ok');
         localStorage.setItem(KEY_OK, '1');
-        unlock();
+        // small delay so the "Loading…" shows before hiding gate
+        setTimeout(unlock, 120);
         return;
       }
       showMessage('Password Reveal = 1 kiss', 'warn');
@@ -130,7 +133,13 @@
 
     btn.addEventListener('click', handleSubmit);
     pw.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
-    if (localStorage.getItem(KEY_OK) === '1') unlock(); else pw.focus();
+    if (localStorage.getItem(KEY_OK) === '1') {
+      // If already unlocked, reveal and load immediately
+      unlock();
+    } else {
+      // focus input for immediate typing
+      setTimeout(()=> pw.focus(), 100);
+    }
   </script>
 </body>
 </html>
