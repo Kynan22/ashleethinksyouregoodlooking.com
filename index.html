@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Mobile viewport -->
+  <!-- Real mobile viewport -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Hello :)</title>
   <style>
@@ -46,24 +46,20 @@
 
     /* ---------- Game area ---------- */
     #game {
-      width:100vw; height:100vh;
+      /* Small viewport units stop Android/iOS URL bars from cropping */
+      width:100svw; height:100svh;
       display:flex; align-items:center; justify-content:center;
-      background:#000;             /* letterbox bars if needed */
+      background:#000;
       touch-action:none;
+      overflow:hidden;
     }
-    /* Keep 9:11 aspect; fit on Pixel 7a without stretching */
-    #game > canvas {
+    /* Let JS control size precisely; keep base rules minimal */
+    #game > canvas{
       display:block;
-      width: min(90vw, calc(90vh * 9 / 11));
-      height: auto;
-      aspect-ratio: 9 / 11;
-      max-width: 900px;
-      max-height: 1100px;
-      border-radius: 8px;
-
-      pointer-events: auto;
-      touch-action: none;
-      -webkit-tap-highlight-color: transparent;
+      border-radius:8px;
+      pointer-events:auto;
+      touch-action:none;
+      -webkit-tap-highlight-color:transparent;
     }
   </style>
 </head>
@@ -79,7 +75,7 @@
     <div id="msg" class="msg" aria-live="polite"></div>
   </section>
 
-  <!-- Game mount (Kaboom root renders canvas right here) -->
+  <!-- Game mount (Kaboom root renders canvas here) -->
   <div id="game" class="hidden" role="main" aria-label="Game"></div>
 
   <script>
@@ -108,60 +104,76 @@
     }
     function showMessage(text, cls='warn'){ msg.className='msg '+cls; msg.textContent=text; }
 
-    // Touch → pointer & mouse bridge (don’t move the canvas)
+    // ---- Touch bridge (don’t move canvas) ----
     function enableTouchBridge(canvas){
       canvas.style.touchAction = 'none';
       canvas.style.pointerEvents = 'auto';
       const opts = { passive:false };
 
-      const firePointer = (type, t) => {
-        canvas.dispatchEvent(new PointerEvent(type, {
-          bubbles:true,
-          pointerType:'touch',
-          pointerId: t.identifier || 1,
-          clientX: t.clientX,
-          clientY: t.clientY,
-          buttons: type === 'pointerdown' ? 1 : 0,
-        }));
-      };
-      const fireMouse = (type, t) => {
-        canvas.dispatchEvent(new MouseEvent(type, {
-          bubbles:true, clientX:t.clientX, clientY:t.clientY, button:0
-        }));
-      };
+      const firePointer = (type, t) => canvas.dispatchEvent(new PointerEvent(type, {
+        bubbles:true, pointerType:'touch', pointerId:t.identifier || 1,
+        clientX:t.clientX, clientY:t.clientY, buttons:type==='pointerdown'?1:0,
+      }));
+      const fireMouse = (type, t) => canvas.dispatchEvent(new MouseEvent(type, {
+        bubbles:true, clientX:t.clientX, clientY:t.clientY, button:0,
+      }));
 
       canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        for (const t of e.changedTouches) {
-          firePointer('pointerdown', t);
-          fireMouse('mousedown', t);
-        }
+        for (const t of e.changedTouches){ firePointer('pointerdown', t); fireMouse('mousedown', t); }
       }, opts);
-
       canvas.addEventListener('touchend', (e) => {
         e.preventDefault();
-        for (const t of e.changedTouches) {
-          firePointer('pointerup', t);
-          fireMouse('mouseup', t);
-          fireMouse('click', t); // many libs rely on click
-        }
+        for (const t of e.changedTouches){ firePointer('pointerup', t); fireMouse('mouseup', t); fireMouse('click', t); }
       }, opts);
-
       canvas.addEventListener('touchcancel', (e) => {
         e.preventDefault();
-        for (const t of e.changedTouches) {
-          firePointer('pointercancel', t);
-        }
+        for (const t of e.changedTouches){ firePointer('pointercancel', t); }
       }, opts);
     }
 
-    function afterKaboomAttachBridge(){
-      // Poll a few frames until Kaboom creates the canvas under #game
+    // ---- Fit canvas into visual viewport (no stretch) ----
+    const GAME_W = 900, GAME_H = 1100, ASPECT = GAME_W / GAME_H; // 9/11
+
+    function getViewportSize(){
+      // Prefer visualViewport on mobile; fallback to inner sizes
+      const vv = window.visualViewport;
+      return vv ? { w: vv.width, h: vv.height } : { w: window.innerWidth, h: window.innerHeight };
+    }
+
+    function fitCanvas(cvs){
+      const { w, h } = getViewportSize();
+      // small padding so it never touches edges
+      const pad = Math.max(8, Math.min(w, h) * 0.03);
+      const availW = w - pad*2;
+      const availH = h - pad*2;
+
+      let cw, ch;
+      if (availW / availH > ASPECT) {
+        // too wide -> limit by height
+        ch = availH;
+        cw = ch * ASPECT;
+      } else {
+        // too tall -> limit by width
+        cw = availW;
+        ch = cw / ASPECT;
+      }
+      cvs.style.width  = Math.floor(cw) + 'px';
+      cvs.style.height = Math.floor(ch) + 'px';
+    }
+
+    function afterKaboomInit(){
       let tries = 0;
       (function look(){
         const cvs = document.querySelector('#game > canvas');
-        if (cvs) { enableTouchBridge(cvs); return; }
-        if (tries++ < 60) requestAnimationFrame(look);
+        if (!cvs) { if (tries++ < 60) requestAnimationFrame(look); return; }
+        enableTouchBridge(cvs);
+        fitCanvas(cvs);
+        // resize on viewport changes & orientation change
+        const onResize = () => fitCanvas(cvs);
+        window.addEventListener('resize', onResize);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
+        window.addEventListener('orientationchange', onResize);
       })();
     }
 
@@ -169,12 +181,12 @@
       gate.classList.add('hidden');
       game.classList.remove('hidden');
 
-      // Load your game (Kaboom will render a canvas inside #game because you set root there)
+      // Load your game (Kaboom renders inside #game because main.js sets root there)
       const s = document.createElement('script');
       s.type = 'module';
       s.src = './main.js?v=' + Date.now();
       s.onerror = () => showMessage('Could not load game (main.js).', 'warn');
-      s.onload  = () => afterKaboomAttachBridge();
+      s.onload  = () => afterKaboomInit();
       document.body.appendChild(s);
     }
 
