@@ -6,12 +6,23 @@ const TARGET_H = 1100;
 const ASPECT   = TARGET_W / TARGET_H;
 
 function computeGameSize() {
-  const vw = Math.min(window.innerWidth  || 900, TARGET_W);
-  const vh = Math.min(window.innerHeight || 1200, TARGET_H);
+  // Prefer the container size if available (prevents odd sizes on some mobile browsers)
+  const root = document.getElementById("kaboomRoot");
+  let vw = window.innerWidth || TARGET_W;
+  let vh = window.innerHeight || TARGET_H;
+
+  if (root) {
+    const rect = root.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      vw = Math.min(rect.width, TARGET_W);
+      vh = Math.min(rect.height || window.innerHeight, TARGET_H);
+    }
+  }
 
   // fit to aspect (no CSS scale)
-  let w = vw, h = Math.floor(vw / ASPECT);
-  if (h > vh) { h = vh; w = Math.floor(h * ASPECT); }
+  let w = Math.floor(vw);
+  let h = Math.floor(w / ASPECT);
+  if (h > vh) { h = Math.floor(vh); w = Math.floor(h * ASPECT); }
 
   // ensure minimums
   w = Math.max(360, w);
@@ -28,16 +39,28 @@ kaboom({
   background: [135, 206, 235],
   font: "gf",
   root: document.getElementById("kaboomRoot"),
+  crisp: true,
 });
 
 debug.inspect = false;
 setGravity(1700);
 
+// Make sure the canvas catches touch/pointer events
+// (kaboom creates the canvas synchronously), so patch it now.
+const rootEl = document.getElementById("kaboomRoot");
+const canvas = rootEl.querySelector("canvas");
+if (canvas) {
+  canvas.style.touchAction = "none";         // make sure touches hit the canvas
+  canvas.style.webkitTapHighlightColor = "transparent";
+  canvas.style.userSelect = "none";
+  canvas.style.pointerEvents = "auto";
+}
+
 // ---- ASSETS ----
 loadFont("gf", "https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/Super.ttf");
 loadSprite("pansy",   "https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/pansy_small.png");
 loadSprite("pizza",   "https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/pizza_small.png");
-loadSprite("biscoff","https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/biscoff.png");
+loadSprite("biscoff","https://raw.githubusercontent.com/Kynan22/ashleethinksyourgoodlooking.com/refs/heads/main/biscoff.png").catch(()=>{}); // tolerate missing
 loadSprite("heart",   "https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/heart2.png");
 loadSpriteAtlas("https://raw.githubusercontent.com/Kynan22/ashleethinksyouregoodlooking.com/refs/heads/main/newsprite2.png", {
   gizmo: {
@@ -122,8 +145,10 @@ function makeButton(label, centerX, centerY, onPress, { w = 260, h = 96, zBase =
     fixedUI: true,
   });
 
-  hit.onClick(onPress);     // mouse + touch
-  hit.onTouchStart(onPress); // (Kaboom also maps touch→click, this is just extra-safe)
+  // Kaboom's area should map touch -> click, but attach both to be extra-robust:
+  hit.onClick(onPress);
+  // onTouchStart doesn't exist on older kaboom builds; use a pointerdown fallback:
+  hit.onPointerDown?.(onPress);
 
   return { hit, lbl };
 }
@@ -153,6 +178,9 @@ scene("start", () => {
 
 /* ======================= GAME ======================= */
 scene("game", () => {
+  // -------------------------
+  // Consolidated (no duplicates)
+  // -------------------------
   const FLOOR_Y = Math.min(780, height() - 320);
 
   // Ground
@@ -277,7 +305,7 @@ scene("game", () => {
   makeButton("JUMP", width()/2 - 140, height() - 70, doJump, { w: 220, h: 90 });
   makeButton("DUCK", width()/2 + 140, height() - 70, startDuck, { w: 220, h: 90 });
 
-  // Spawns (trimmed)
+  // Spawns & letter logic (single set of variables)
   let speed = 450;
   let globalCooldown = 3;
   const SINGLE_COOLDOWN  = 4;
@@ -433,16 +461,6 @@ scene("game", () => {
   });
 
   // Loop
-  let speed = 450;
-  let globalCooldown = 3;
-  let pansyTimer = 0, biscoffTimer = 0, pizzaTimer = 0;
-  let pansyDelay = 2, biscoffDelay = 3.8, pizzaDelay = 5;
-  let lettersEnabled = false;
-  const LETTERS_UNLOCK_SCORE = 1;
-  let letterTimer = 0, lettersCooldown = 0, letterDelay = 3.5;
-  let timeSinceStart = 0, lastNonLetterSpawnAt = -999;
-  let nonLetterBlockUntil = 0, letterBlockUntil = 0;
-
   onUpdate(() => {
     if (gameOver) {
       if (hitMsgTimer    > 0){ hitMsgTimer    -= dt(); if (hitMsgTimer    <= 0) hitMsg.text = ""; }
