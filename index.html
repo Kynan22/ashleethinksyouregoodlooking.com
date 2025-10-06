@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Real mobile viewport -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Hello :)</title>
   <style>
@@ -11,11 +10,10 @@
     html, body { height:100%; margin:0; }
     body {
       background:var(--bg); color:var(--ink);
-      font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
       display:grid; place-items:center;
     }
 
-    /* ---------- Gate (password) ---------- */
     .gate {
       width:min(540px, 92vw);
       background:var(--card);
@@ -29,7 +27,7 @@
     p  { margin:.25rem 0 .75rem; color:var(--muted); }
     .row { display:flex; gap:10px; margin-top:.5rem; }
     input[type="password"], input[type="text"] {
-      flex:1; padding:14px 14px; border-radius:10px; border:1px solid #32323a; outline:none;
+      flex:1; padding:14px; border-radius:10px; border:1px solid #32323a; outline:none;
       background:#0f0f13; color:var(--ink); font-size:1rem;
     }
     input::placeholder { color:#5b5b66; }
@@ -44,22 +42,39 @@
     .note { margin-top:10px; color:var(--accent); font-weight:600; font-size:0.95rem; }
     .hidden { display:none !important; }
 
-    /* ---------- Game area ---------- */
+    /* Game area fills safe viewport; position:relative so HUD can sit above */
     #game {
-      /* Small viewport units stop Android/iOS URL bars from cropping */
       width:100svw; height:100svh;
+      position:relative;
       display:flex; align-items:center; justify-content:center;
       background:#000;
-      touch-action:none;
       overflow:hidden;
     }
-    /* Let JS control size precisely; keep base rules minimal */
-    #game > canvas{
-      display:block;
-      border-radius:8px;
-      pointer-events:auto;
-      touch-action:none;
+    #game > canvas {
+      display:block; border-radius:8px;
+      touch-action:none; pointer-events:auto;
       -webkit-tap-highlight-color:transparent;
+    }
+
+    /* --- Overlay HUD buttons (DOM) --- */
+    .hud {
+      position:absolute; inset:auto 0 2.5vh 0;  /* bottom center */
+      display:flex; justify-content:space-evenly; align-items:center;
+      gap:3vw; padding:0 3vw;
+      pointer-events:none; /* container ignores; children re-enable */
+    }
+    .hud button {
+      pointer-events:auto;
+      min-width:32vw;            /* big tappable targets */
+      padding:clamp(10px, 2.2vh, 18px);
+      font-size:clamp(16px, 2.2vh, 20px);
+      border-radius:14px;
+      border:2px solid #444;
+      background:#1d1d24cc;     /* slight transparency over canvas */
+      color:var(--ink); font-weight:800;
+      backdrop-filter: blur(2px);
+      -webkit-tap-highlight-color:transparent;
+      touch-action:manipulation;
     }
   </style>
 </head>
@@ -75,20 +90,27 @@
     <div id="msg" class="msg" aria-live="polite"></div>
   </section>
 
-  <!-- Game mount (Kaboom root renders canvas here) -->
-  <div id="game" class="hidden" role="main" aria-label="Game"></div>
+  <!-- Game mount -->
+  <div id="game" class="hidden" role="main" aria-label="Game">
+    <!-- Overlay HUD (DOM buttons) -->
+    <div id="hud" class="hud hidden" aria-hidden="true">
+      <button id="hudJump" type="button">JUMP</button>
+      <button id="hudDuck" type="button">DUCK</button>
+    </div>
+  </div>
 
   <script>
-    // === Config ===
     const WEBAPP = 'https://script.google.com/macros/s/AKfycbxnlrHpQDdcSBR6XHk2SgpAunSMeXn9sNRrVvp7pPkzkPqYTAFAsY55AwTfNqPHHL18UA/exec';
     const KEY_OK = 'gate_ok_v1';
     const norm  = (s) => s.trim().toLowerCase().replace(/\s+/g, '');
     const ACCEPT = new Set(['uber','ubergame']); // also matches "uber game"
 
-    // Elements
-    const $ = (q) => document.querySelector(q);
+    const $  = (q) => document.querySelector(q);
     const gate = $('#gate');
     const game = $('#game');
+    const hud  = $('#hud');
+    const hudJump = $('#hudJump');
+    const hudDuck = $('#hudDuck');
     const pw  = $('#pw');
     const btn = $('#go');
     const msg = $('#msg');
@@ -104,60 +126,19 @@
     }
     function showMessage(text, cls='warn'){ msg.className='msg '+cls; msg.textContent=text; }
 
-    // ---- Touch bridge (don’t move canvas) ----
-    function enableTouchBridge(canvas){
-      canvas.style.touchAction = 'none';
-      canvas.style.pointerEvents = 'auto';
-      const opts = { passive:false };
-
-      const firePointer = (type, t) => canvas.dispatchEvent(new PointerEvent(type, {
-        bubbles:true, pointerType:'touch', pointerId:t.identifier || 1,
-        clientX:t.clientX, clientY:t.clientY, buttons:type==='pointerdown'?1:0,
-      }));
-      const fireMouse = (type, t) => canvas.dispatchEvent(new MouseEvent(type, {
-        bubbles:true, clientX:t.clientX, clientY:t.clientY, button:0,
-      }));
-
-      canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        for (const t of e.changedTouches){ firePointer('pointerdown', t); fireMouse('mousedown', t); }
-      }, opts);
-      canvas.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        for (const t of e.changedTouches){ firePointer('pointerup', t); fireMouse('mouseup', t); fireMouse('click', t); }
-      }, opts);
-      canvas.addEventListener('touchcancel', (e) => {
-        e.preventDefault();
-        for (const t of e.changedTouches){ firePointer('pointercancel', t); }
-      }, opts);
-    }
-
-    // ---- Fit canvas into visual viewport (no stretch) ----
-    const GAME_W = 900, GAME_H = 1100, ASPECT = GAME_W / GAME_H; // 9/11
-
+    // Fit the Kaboom canvas inside the visual viewport without stretching.
+    const GAME_W = 900, GAME_H = 1100, ASPECT = GAME_W / GAME_H;
     function getViewportSize(){
-      // Prefer visualViewport on mobile; fallback to inner sizes
       const vv = window.visualViewport;
-      return vv ? { w: vv.width, h: vv.height } : { w: window.innerWidth, h: window.innerHeight };
+      return vv ? { w: vv.width, h: vv.height } : { w: innerWidth, h: innerHeight };
     }
-
     function fitCanvas(cvs){
       const { w, h } = getViewportSize();
-      // small padding so it never touches edges
       const pad = Math.max(8, Math.min(w, h) * 0.03);
-      const availW = w - pad*2;
-      const availH = h - pad*2;
-
+      const availW = w - pad*2, availH = h - pad*2;
       let cw, ch;
-      if (availW / availH > ASPECT) {
-        // too wide -> limit by height
-        ch = availH;
-        cw = ch * ASPECT;
-      } else {
-        // too tall -> limit by width
-        cw = availW;
-        ch = cw / ASPECT;
-      }
+      if (availW / availH > ASPECT) { ch = availH; cw = ch * ASPECT; }
+      else { cw = availW; ch = cw / ASPECT; }
       cvs.style.width  = Math.floor(cw) + 'px';
       cvs.style.height = Math.floor(ch) + 'px';
     }
@@ -167,13 +148,24 @@
       (function look(){
         const cvs = document.querySelector('#game > canvas');
         if (!cvs) { if (tries++ < 60) requestAnimationFrame(look); return; }
-        enableTouchBridge(cvs);
         fitCanvas(cvs);
-        // resize on viewport changes & orientation change
         const onResize = () => fitCanvas(cvs);
-        window.addEventListener('resize', onResize);
-        if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
-        window.addEventListener('orientationchange', onResize);
+        addEventListener('resize', onResize);
+        if (visualViewport) visualViewport.addEventListener('resize', onResize);
+        addEventListener('orientationchange', onResize);
+
+        // Show HUD once canvas is present
+        hud.classList.remove('hidden');
+        hud.setAttribute('aria-hidden', 'false');
+
+        // Wire HUD buttons → exposed functions in main.js
+        const call = (fn) => typeof window[fn] === 'function' && window[fn]();
+        const handler = (fn) => (e) => { e.preventDefault(); e.stopPropagation(); call(fn); };
+
+        hudJump.addEventListener('pointerdown', handler('__kbJump'), {passive:false});
+        hudJump.addEventListener('click',       handler('__kbJump'), {passive:false});
+        hudDuck.addEventListener('pointerdown', handler('__kbDuck'), {passive:false});
+        hudDuck.addEventListener('click',       handler('__kbDuck'), {passive:false});
       })();
     }
 
@@ -181,7 +173,6 @@
       gate.classList.add('hidden');
       game.classList.remove('hidden');
 
-      // Load your game (Kaboom renders inside #game because main.js sets root there)
       const s = document.createElement('script');
       s.type = 'module';
       s.src = './main.js?v=' + Date.now();
@@ -215,7 +206,6 @@
 
     btn.addEventListener('click', handleSubmit);
     pw.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
-
     if (localStorage.getItem(KEY_OK) === '1') unlock(); else pw.focus();
   </script>
 </body>
