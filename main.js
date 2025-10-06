@@ -143,7 +143,7 @@ scene("start", () => {
     zIndex: 5,
     fixedUI: true,
   });
-
+  window.__kbStart = () => go("game");
   makeButton("PLAY", width() / 2, height() / 2 + 100, () => go("game"), {
     w: 420, h: 160, zBase: 1000,
   });
