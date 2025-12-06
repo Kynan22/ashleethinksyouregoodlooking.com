@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Welcome</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="center">
+    <form class="card login" id="loginForm">
+      <h1 class="title">Ashlee Login</h1>
+      <p class="message"></p>
+
+      <div style="margin-top:14px"></div>
+      <label for="pw" class="note">Password</label>
+      <input class="input" id="pw" type="password" autocomplete="current-password" required />
+      <div style="height:12px"></div>
+
+      <div class="row">
+        <button class="btn-solid" type="submit">Let me in</button>
+        <span class="note" id="err" role="alert" aria-live="polite"></span>
+      </div>
+      <p class="note"></p>
+    </form>
+  </div>  
+
+  <script>
+    // Change this to whatever you want
+    const PASSWORD = 'missingyou';
+    const AUTH_KEY = 'auth_token_v1';
+    const AUTH_OK  = 'ok';
+
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const pw = document.getElementById('pw').value.trim();
+      if (pw === PASSWORD) {
+        localStorage.setItem(AUTH_KEY, AUTH_OK);
+        window.location.replace('./index.html');
+      } else {
+        document.getElementById('err').textContent = "That's not it — try again?";
+      }
+    });
+  </script>
+</body>
+</html>

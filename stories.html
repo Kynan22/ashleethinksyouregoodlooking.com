@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Moments</title>
+  <link rel="stylesheet" href="./styles.css" />
+
+  <script>
+    const AUTH_KEY = 'auth_token_v1';
+    const AUTH_OK  = 'ok';
+    (function () {
+      if (new URLSearchParams(location.search).has('logout')) {
+        localStorage.removeItem(AUTH_KEY);
+        location.replace('./login.html'); return;
+      }
+      if (localStorage.getItem(AUTH_KEY) !== AUTH_OK) {
+        window.location.replace('./login.html');
+      }
+    })();
+  </script>
+
+  
+</head>
+<body>
+  <main class="shell">
+    <div class="page-header">
+      <a class="backBtn" href="./index.html" aria-label="Back to Home">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 19.1 8.4 12l7.1-7.1-1.4-1.4L5.6 12l8.5 8.5z"/></svg>
+        Back
+      </a>
+      <div aria-hidden="true" style="flex:1"></div>
+    </div>
+
+    <section class="card">
+      <h1 class="title">Stories</h1>
+      <p class="message">Three little stories that meant a lot to me.</p>
+
+      <div class="story-chips">
+        <button class="chipCard" data-story="start" type="button">
+          <span class="eyebrow">Chapter 1</span>
+          <h3>The Start</h3>
+        </button>
+
+        <button class="chipCard cs" type="button">
+          <span class="eyebrow">Chapter 2</span>
+          <h3>Coming Soon...</h3> <!-- The Thug things that made her play it cool -->
+        </button>
+
+        <button class="chipCard cs" type="button">
+          <span class="eyebrow">Chapter 3</span>
+          <h3>Coming Soon...</h3> <!-- The Relief when she said she was in the same boat and chose me -->
+        </button> 
+      </div>
+    </section>
+
+    <footer>
+      <a class="link" href="./index.html">Back to Home</a>
+      &nbsp;•&nbsp;
+      <a class="link" href="./index.html?logout">Logout</a>
+    </footer>
+  </main>
+
+  <!-- ===== Overlay Player ===== -->
+  <div id="overlay" class="overlay" hidden>
+    <div class="player" role="dialog" aria-modal="true" aria-labelledby="storyTitle">
+      <div class="playerHeader">
+        <div id="storyTitle" class="titleSmall">Story</div>
+        <button class="closeBtn" id="closeBtn" type="button">Close</button>
+      </div>
+
+      <div class="stage" id="stage">
+        <!-- Slides injected here -->
+      </div>
+
+      <div class="playerFooter">
+        <div class="progress" id="progress"></div>
+        <div style="display:flex; gap:8px;">
+          <button class="ghost" id="prevBtn" type="button">Prev</button>
+          <button class="ghost" id="nextBtn" type="button">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Content =====
+    const STORIES = {
+      start: {
+        title: "The start",
+        steps: [
+          { img: "./assets/msg1.png", alt: "Your message", caption: "I knew immediately I wanted to impress you with that URL" },
+          { img: "./assets/time1.png", alt: "My reply", caption: "I spent 3 hours straight setting it up. I was worried I was taking too long" },
+          { img: "./assets/web1.png",       alt: "Website",   caption: "After all that work I still kept it basic in an attempt to play it cool!" },
+          { img: "./assets/reply1.png", alt: "Your Response", caption: "I vividly remember not being able to stop smiling afterwards." },
+          { img: "./assets/count1.png", alt: "Countdown", caption: "Which is why I couldn't help myself but share my excitement." },
+        ]
+      },
+      thug: {
+        title: "The thug",
+        steps: [
+          { img: "./assets/img1.png",   alt: "img1",   caption: "caption 1 " },
+          { img: "./assets/img1.png",    alt: "img2",    caption: "caption 2" },
+          { img: "./assets/img1.png",    alt: "img3", caption: "caption 3" },
+        ]
+      },
+      relief: {
+        title: "The relief",
+        steps: [
+          { img: "./assets/img1.png",    alt: "img1",    caption: "caption 1" },
+          { img: "./assets/img1.png",   alt: "img2",   caption: "caption 2" },
+          { img: "./assets/img1.png",     alt: "img3", caption: "caption 3" },
+          { img: "./assets/img1.png",    alt: "img4",    caption: "caption 4" },
+        ]
+      }
+    };
+
+    // ===== Player =====
+    const overlay   = document.getElementById('overlay');
+    const stage     = document.getElementById('stage');
+    const progress  = document.getElementById('progress');
+    const titleEl   = document.getElementById('storyTitle');
+    const closeBtn  = document.getElementById('closeBtn');
+    const nextBtn   = document.getElementById('nextBtn');
+    const prevBtn   = document.getElementById('prevBtn');
+
+    let current = null;
+    let index   = 0;
+
+    function resetProgressDots(count, activeIdx=0){
+      progress.innerHTML = '';
+      for (let i = 0; i < count; i++){
+        const d = document.createElement('div');
+        d.className = 'dot' + (i===activeIdx ? ' active' : '');
+        progress.appendChild(d);
+      }
+    }
+
+    function setActiveDot(i){
+      [...progress.children].forEach((d, idx) => {
+        d.classList.toggle('active', idx === i);
+      });
+    }
+
+    function showStep(i){
+      if (!current) return;
+      const step = current.steps[i];
+      if (!step) return;
+
+      // Clear previous slide
+      stage.querySelectorAll('.fade').forEach(el => el.remove());
+
+      // New slide
+      const slide = document.createElement('div');
+      slide.className = 'fade';
+      slide.innerHTML = `
+        <div class="imgWrap">
+          <img src="${step.img}" alt="${step.alt || ''}"/>
+        </div>
+        ${step.caption ? `<div class="caption">${step.caption}</div>` : ''}
+      `;
+      stage.appendChild(slide);
+
+      // Fade in
+      requestAnimationFrame(() => slide.classList.add('show'));
+      setActiveDot(i);
+    }
+
+    function startStory(key){
+      const story = STORIES[key];
+      if (!story) return;
+
+      overlay.hidden = false;
+      titleEl.textContent = story.title;
+      current = story;
+      index = 0;
+      resetProgressDots(story.steps.length, 0);
+      showStep(0);
+    }
+
+    function endStory(){
+      stage.querySelectorAll('.fade').forEach(el => el.remove());
+      overlay.hidden = true;
+      current = null;
+    }
+
+    function go(delta){
+      if (!current) return;
+      let next = index + delta;
+      // Bounds
+      if (next < 0) next = 0;
+      if (next >= current.steps.length) { endStory(); return; }
+      index = next;
+      showStep(index);
+    }
+
+    // Wire chips
+    document.querySelectorAll('[data-story]').forEach(btn => {
+      btn.addEventListener('click', () => startStory(btn.dataset.story));
+    });
+
+    // Controls (manual only — no auto-advance)
+    nextBtn.addEventListener('click', () => go(+1));
+    prevBtn.addEventListener('click', () => go(-1));
+    closeBtn.addEventListener('click', endStory);
+
+    // Close by clicking outside the card
+    overlay.addEventListener('click', (e) => {
+      const player = e.target.closest('.player');
+      if (!player) endStory();
+    });
+
+    // Keyboard
+    addEventListener('keydown', (e) => {
+      if (overlay.hidden) return;
+      if (e.key === 'Escape') endStory();
+      if (e.key === 'ArrowRight') go(+1);
+      if (e.key === 'ArrowLeft')  go(-1);
+    });
+  </script>
+</body>
+</html>

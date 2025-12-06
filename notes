@@ -1,0 +1,12 @@
+<!-- 🎄 Christmas Day special card (auto-shown only on Dec 25) -->
+    <section class="card card--christmas christmas-card">
+      <h2 class="title">Merry Christmas Ashlee!</h2>
+      <p class="message">
+        Just a little holiday update!
+      </p>
+      <p class="message">
+        Getting to spend Christmas with you is the greatest gift I ever could have wished for. I love you more than you know, thank you for being there for me, thank you for treating me so well, and thank you for loving on me in the way that you do.
+      </p>
+      <!-- If you want this to link to a present page later, uncomment this: -->
+      <!-- <a class="btn christmas-link" href="./merry-christmas.html">Open your present</a> -->
+    </section>

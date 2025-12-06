@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Wordle • Arcade</title>
+  <link rel="stylesheet" href="../styles.css" />
+
+
+  <script>
+    // Same simple auth gate as the other pages
+    const AUTH_KEY = 'auth_token_v1';
+    const AUTH_OK  = 'ok';
+    (function () {
+      if (new URLSearchParams(location.search).has('logout')) {
+        localStorage.removeItem(AUTH_KEY);
+        location.replace('../login.html'); return;
+      }
+      if (localStorage.getItem(AUTH_KEY) !== AUTH_OK) {
+        window.location.replace('../login.html');
+      }
+    })();
+  </script>
+
+  <style>
+    :root {
+      /* These will be overwritten by JS to match the title colour */
+      --wordle-correct-bg: #2da53f;
+      --wordle-correct-border: #238332;
+
+      /* Slightly more vibrant soft pink */
+      --wordle-present-bg: #f3a3b0;
+      --wordle-present-border: #e28191;
+    }
+
+    /* Give main content bottom padding so it doesn't hide behind the fixed keyboard */
+    .shell {
+      padding-bottom: 200px;
+    }
+
+    /* Card & header row */
+    .card {
+      position: relative;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+
+    .card-header .backBtn {
+      flex: 0 0 auto;
+      margin: 0;
+    }
+
+    .card-header .title {
+      flex: 1 1 auto;
+      text-align: center;
+      margin: 0;
+    }
+
+    .message {
+      margin: 0 0 6px;
+      font-size: 14px;
+      opacity: 0.8;
+      text-align: center;
+    }
+
+    /* --- Wordle-specific styles --- */
+    .wordle-wrap { 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px; /* slightly tighter so grid sits closer to toast */
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .grid {
+      display: grid; 
+      grid-template-columns: repeat(5, 52px); 
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .tile {
+      width: 52px; 
+      height: 52px; 
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Mulish', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      font-weight: 700;
+      font-size: 24px;
+      text-transform: uppercase;
+      background: #fff;
+      border: 2px solid #e0e0e0;
+      box-shadow: 0 2px 4px rgba(0,0,0,.04);
+      transition: transform .1s ease;
+      box-sizing: border-box;
+    }
+
+    .tile.filled { 
+      border-color: #c0c0c0;
+    }
+
+    .tile.pop { 
+      animation: pop .1s ease; 
+    }
+
+    @keyframes pop { 
+      50% { transform: scale(1.08); } 
+    }
+
+    /* Correct: match title green via CSS vars */
+    .tile.state-correct { 
+      background: var(--wordle-correct-bg); 
+      color: #fff; 
+      border-color: var(--wordle-correct-border); 
+    }
+
+    /* Present: vibrant soft pink */
+    .tile.state-present { 
+      background: var(--wordle-present-bg); 
+      color: #fff; 
+      border-color: var(--wordle-present-border); 
+    }
+
+    .tile.state-miss {
+      background: #d7d7d7;
+      color: #fff;
+      border-color: #c0c0c0;
+    }
+
+    /* Toast message – smaller and tighter */
+    .toast {
+      text-align: center; 
+      font-weight: 600; 
+      font-size: 12px;              /* smaller text */
+      color: #333;
+      background: #fff;
+      border: 1px solid #e0e0e0; 
+      border-radius: 10px;
+      padding: 2px 10px;            /* less padding */
+      min-width: 100px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.08);
+      min-height: 16px;             /* shorter reserved height */
+      line-height: 1.2;
+    }
+
+    .toast.hidden {
+      visibility: hidden; /* keeps space, hides text */
+    }
+
+    /* Share button in header, top-right */
+    .share-btn {
+      flex: 0 0 auto;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: none;
+      background: var(--wordle-correct-bg);
+      color: #fff;
+      font-family: 'Mulish', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      transition: opacity .15s ease, background .15s ease, transform .1s ease;
+      box-shadow: 0 3px 8px rgba(0,0,0,.1);
+
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .share-btn:hover {
+      background: var(--wordle-correct-border);
+    }
+
+    .share-btn:active {
+      transform: scale(0.97);
+    }
+
+    .share-btn.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    /* Fixed keyboard shell at bottom of screen, full width background */
+    .keyboard-shell {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.12);
+      z-index: 500;
+    }
+
+    /* On-screen Keyboard (inner, centered) */
+    .keyboard {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+      width: 100%;
+      max-width: 484px;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+
+    .keyboard-row {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .key {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 50px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: none;
+      background: #f0f0f0;
+      color: #333;
+      font-family: 'Mulish', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      text-transform: uppercase;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .15s ease, color .15s ease, transform .05s ease;
+      flex-shrink: 0;
+    }
+
+    .key:hover {
+      background: #e4e4e4;
+    }
+
+    .key:active {
+      transform: scale(0.95);
+    }
+
+    .key.wide {
+      min-width: 56px;
+      font-size: 12px;
+    }
+
+    /* Keyboard key states */
+    .key.state-correct {
+      background: var(--wordle-correct-bg);
+      color: #fff;
+    }
+
+    .key.state-present {
+      background: var(--wordle-present-bg);
+      color: #fff;
+    }
+
+    .key.state-miss {
+      background: #b0b0b0;
+      color: #fff;
+    }
+
+    /* Share success popup */
+    .share-success {
+      position: fixed;
+      bottom: 80px; /* above keyboard */
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.2);
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .share-success.show {
+      opacity: 1;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 400px) {
+      .grid {
+        grid-template-columns: repeat(5, 44px);
+        gap: 4px;
+      }
+      .tile {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+      }
+      .keyboard-shell {
+        padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+      }
+      .keyboard {
+        gap: 5px;
+      }
+      .keyboard-row {
+        gap: 4px;
+      }
+      .key {
+        min-width: 28px;
+        height: 44px;
+        padding: 0 6px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+      .key.wide {
+        min-width: 44px;
+        font-size: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <!-- Card -->
+    <section class="card">
+      <header class="card-header">
+        <a class="backBtn" href="../arcade.html" aria-label="Back to Arcade">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M15.5 19.1 8.4 12l7.1-7.1-1.4-1.4L5.6 12l8.5 8.5z"/>
+          </svg>
+          Back
+        </a>
+        <h1 class="title">Wordle</h1>
+        <button id="shareBtn" class="share-btn" type="button">Share 🩷</button>
+      </header>
+
+      <p class="message">5 letters • 6 guesses</p>
+
+      <div class="wordle-wrap">
+        <div id="toast" class="toast hidden" aria-live="polite"></div>
+
+        <!-- 6x5 grid (built by JS) -->
+        <div id="grid" class="grid" aria-label="Word grid"></div>
+      </div>
+    </section>
+
+    <footer>
+      <a class="link" href="../index.html">Back to Home</a>
+      &nbsp;•&nbsp;
+      <a class="link" href="../index.html?logout">Logout</a>
+    </footer>
+  </main>
+
+  <!-- Fixed keyboard at the bottom -->
+  <div class="keyboard-shell">
+    <div id="keyboard" class="keyboard" aria-label="Keyboard"></div>
+  </div>
+
+  <!-- Share success popup -->
+  <div id="shareSuccess" class="share-success">Copied to clipboard!</div>
+
+  <!-- Load custom words first, then game logic -->
+  <script src="my-words.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

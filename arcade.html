@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Arcade Hub</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./season-christmas.css" />
+
+
+  <script>
+    // Super-simple front-end gate (same as main)
+    const AUTH_KEY = 'auth_token_v1';
+    const AUTH_OK  = 'ok';
+
+    (function () {
+      if (new URLSearchParams(location.search).has('logout')) {
+        localStorage.removeItem(AUTH_KEY);
+        location.replace('./login.html');
+        return;
+      }
+      const tok = localStorage.getItem(AUTH_KEY);
+      if (tok !== AUTH_OK) {
+        window.location.replace('./login.html');
+      }
+    })();
+  </script>
+
+  <style>
+    /* Slim header with site-style back button */
+   
+  </style>
+</head>
+<body>
+  <ul class="lightrope">
+  <li></li><li></li><li></li><li></li><li></li>
+  <li></li><li></li><li></li><li></li><li></li>
+</ul>
+  <main class="shell">
+    <!-- Back header -->
+    <div class="game-header">
+      <a class="backBtn" href="./index.html" aria-label="Back to Home">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 19.1 8.4 12l7.1-7.1-1.4-1.4L5.6 12l8.5 8.5z"/></svg>
+        Back
+      </a>
+      <div aria-hidden="true" style="flex:1"></div>
+    </div>
+
+    <!-- Header card -->
+    <section class="card">
+      <h1 class="title">Arcade</h1>
+      <p class="message">Pick a game to play</p>
+    </section>
+
+    <!-- Game selections -->
+    <section class="sections">
+      <!-- Gizmo Run (ensure /arcade/index.html imports ./src/main.js) -->
+      <a class="btn arcade" href="./arcade/">
+        <span class="chip">Runner</span>
+        <h3>Gizmo Run</h3>
+        <p>Collect letters and dodge obstacles!</p>
+      </a>
+
+      <!-- Wordle (create /wordle/index.html) -->
+      <a class="btn typea" href="./wordle/index.html">
+        <span class="chip">Daily</span>
+        <h3>Wordle</h3>
+        <p>5 letters. 6 guesses. Updates Daily!</p>
+      </a>
+
+      <!-- Crossword (create /crossword/index.html) -->
+      <div class="btn_cs crossword" href="./crossword/">
+        <span class="chip">Puzzle</span>
+        <h3>Crossword</h3>
+        <p>Coming Soon...</p>
+      </div>
+    </section>
+
+    <footer>
+      <a class="link" href="./index.html">Back to Home</a>
+      &nbsp;•&nbsp;
+      <a class="link" href="./index.html?logout">Logout</a>
+    </footer>
+    
+  </main>
+   <!-- 🎄 Season-specific behaviour (Christmas, etc.) -->
+  <script src="./season-christmas.js"></script>
+</body>
+</html>

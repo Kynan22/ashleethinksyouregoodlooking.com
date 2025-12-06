@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Merry Christmas ❤️</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Script + body fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Marck+Script&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --green-dark: #2a491c;
+      --green-soft: #b1c1b3;
+      --green-soft-light: #c9d4cb;
+      --red-ink: #b6232f;   /* your chosen red */
+      --ink-soft: #273127;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      font-family: "Courier Prime", "Courier New", monospace;
+      background-color: var(--green-soft);
+      color: var(--ink-soft);
+    }
+
+    .ticket-shell {
+      width: 100%;
+      max-width: 520px;
+      padding: 8px;
+      border-radius: 14px;
+      background-color: var(--green-dark);
+      box-shadow:
+        0 12px 26px rgba(0, 0, 0, 0.20),
+        0 0 0 1px rgba(0, 0, 0, 0.15);
+      position: relative;
+    }
+
+    .ticket-inner {
+      background-color: var(--green-soft);
+      border-radius: 10px;
+      border: 2px solid var(--green-dark);
+      padding: 24px 20px 20px;
+      position: relative;
+    }
+
+    .ticket-inner::before {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(19, 35, 15, 0.55);
+      pointer-events: none;
+    }
+
+    .heading {
+      text-align: center;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .heading h1 {
+      font-family: "Marck Script", "Brush Script MT", cursive;
+      font-size: 32px;
+      line-height: 1.1;
+      color: var(--red-ink);
+      margin-bottom: 4px;
+    }
+
+    .heading h2 {
+      font-family: "Marck Script", "Brush Script MT", cursive;
+      font-size: 28px;
+      line-height: 1.1;
+      color: var(--red-ink);
+    }
+
+    .divider {
+      height: 1px;
+      margin: 18px auto 20px;
+      max-width: 80%;
+      border-top: 1px solid rgba(19, 35, 15, 0.6);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+      position: relative;
+      z-index: 1;
+    }
+
+    .label,
+    .gift-title,
+    .gift-details,
+    .meta-row,
+    .note,
+    .signature,
+    .carousel {
+      position: relative;
+      z-index: 1;
+    }
+
+    .label {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      text-align: center;
+      color: rgba(19, 35, 15, 0.9);
+      margin-bottom: 6px;
+    }
+
+    .gift-title {
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      color: var(--green-dark);
+      margin-bottom: 8px;
+    }
+
+    .gift-details {
+      font-size: 13px;
+      line-height: 1.55;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .meta-pill {
+      font-size: 11px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(19, 35, 15, 0.35);
+      background-color: var(--green-soft-light);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-align: left;
+    }
+
+    .meta-pill span.dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--red-ink);
+    }
+
+    .note {
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    /* Carousel styles */
+    .carousel {
+      margin-bottom: 16px;
+    }
+
+    .carousel-label {
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-align: center;
+      color: rgba(19, 35, 15, 0.9);
+      margin-bottom: 6px;
+    }
+
+    .carousel-frame {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(19, 35, 15, 0.4);
+      background-color: #e0e5e1;
+    }
+
+    .carousel-main {
+      width: 100%;
+      display: block;
+      max-height: 420px;
+      object-fit: cover;
+    }
+
+    .carousel-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 11px;
+    }
+
+    .carousel-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .carousel-btn {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(19, 35, 15, 0.4);
+      background-color: var(--green-soft-light);
+      color: var(--green-dark);
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .carousel-btn span.arrow {
+      font-size: 12px;
+    }
+
+    .carousel-btn:hover {
+      background-color: #d5ded7;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transform: translateY(-1px);
+    }
+
+    .carousel-dots {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .dot-indicator {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(19, 35, 15, 0.4);
+      background-color: transparent;
+      cursor: pointer;
+      transition: background-color 0.15s ease, transform 0.1s ease;
+    }
+
+    .dot-indicator.active {
+      background-color: var(--red-ink);
+      transform: scale(1.1);
+    }
+
+    .signature {
+      text-align: center;
+      font-size: 16px;
+      color: var(--red-ink);
+      font-weight: 600;
+      padding-bottom: 15px;
+    }
+
+    .signature span {
+      font-size: 14px;
+      margin-left: 4px;
+    }
+
+    @media (min-width: 600px) {
+      body {
+        padding: 32px;
+      }
+      .ticket-inner {
+        padding: 28px 26px 24px;
+      }
+      .heading h1 {
+        font-size: 36px;
+      }
+      .heading h2 {
+        font-size: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="ticket-shell" aria-label="Christmas surprise ticket">
+    <section class="ticket-inner">
+      <header class="heading">
+        <h1>Merry Christmas Ashlee</h1>
+      </header>
+
+      <div class="divider"></div>
+
+      <p class="label">Your gift</p>
+      <p class="gift-title">Hard Spine Book Binding Workshop</p>
+      <p class="gift-details">
+        This year has been filled with incredible new experiences and moments thanks to meeting you.
+        This gift is a booking for a Hard Spine Book Binding Workshop! Another experience I can't wait to share with you and one
+        I picked out because I thought it was something you'd love to do! (It's also much easier getting you to make your own present hehe)
+        I love you so much :)
+      </p>
+
+      <div class="meta-row">
+        <div class="meta-pill">
+          <span class="dot"></span>
+          <span>Date: Feb 21st (Saturday)</span>
+        </div>
+        <div class="meta-pill">
+          <span class="dot"></span>
+          <span>Time: 10am – 1pm</span>
+        </div>
+        <div class="meta-pill">
+          <span class="dot"></span>
+          <span>Location: Zetta Florence – 197B Brunswick Street, Fitzroy VIC</span>
+        </div>
+        <div class="meta-pill">
+          <span class="dot"></span>
+          <span>Booked for: 2 guests</span>
+        </div>
+      </div>
+
+      <p class="signature">
+        Love, Kynan<span>🎄</span>
+      </p>
+
+      <!-- Carousel -->
+      <section class="carousel" aria-label="Workshop preview images">
+        <div class="carousel-frame">
+          <img
+            id="carousel-image"
+            class="carousel-main"
+            src="assets/christmas/book1.jpg"
+            alt="Hardcover book binding preview 1"
+          />
+        </div>
+        <div class="carousel-controls">
+          <div class="carousel-buttons">
+            <button type="button" class="carousel-btn" id="prev-btn">
+              <span class="arrow">←</span>
+              <span>Previous</span>
+            </button>
+            <button type="button" class="carousel-btn" id="next-btn">
+              <span>Next</span>
+              <span class="arrow">→</span>
+            </button>
+          </div>
+          <div class="carousel-dots" aria-hidden="true">
+            <span class="dot-indicator active" data-index="0"></span>
+            <span class="dot-indicator" data-index="1"></span>
+            <span class="dot-indicator" data-index="2"></span>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const images = [
+        "assets/christmas/book1.jpg",
+        "assets/christmas/book2.jpg",
+        "assets/christmas/book3.jpg",
+      ];
+
+      const imageEl = document.getElementById("carousel-image");
+      const prevBtn = document.getElementById("prev-btn");
+      const nextBtn = document.getElementById("next-btn");
+      const dots = Array.from(document.querySelectorAll(".dot-indicator"));
+
+      let currentIndex = 0;
+      let intervalId = null;
+      const intervalMs = 5000; // 5 seconds
+
+      function updateCarousel(index) {
+        currentIndex = (index + images.length) % images.length;
+        imageEl.src = images[currentIndex];
+        imageEl.alt = "Hardcover book binding preview " + (currentIndex + 1);
+
+        dots.forEach((dot, i) => {
+          dot.classList.toggle("active", i === currentIndex);
+        });
+      }
+
+      function nextImage() {
+        updateCarousel(currentIndex + 1);
+      }
+
+      function prevImage() {
+        updateCarousel(currentIndex - 1);
+      }
+
+      function resetInterval() {
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+        intervalId = setInterval(nextImage, intervalMs);
+      }
+
+      prevBtn.addEventListener("click", function () {
+        prevImage();
+        resetInterval();
+      });
+
+      nextBtn.addEventListener("click", function () {
+        nextImage();
+        resetInterval();
+      });
+
+      dots.forEach(dot => {
+        dot.addEventListener("click", function () {
+          const idx = parseInt(dot.getAttribute("data-index"), 10);
+          updateCarousel(idx);
+          resetInterval();
+        });
+      });
+
+      // start auto-rotation
+      resetInterval();
+    })();
+  </script>
+</body>
+</html>

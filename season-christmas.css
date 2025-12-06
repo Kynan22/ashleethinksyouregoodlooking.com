@@ -1,0 +1,322 @@
+@charset "UTF-8";
+
+/* =========================
+   🎄 Christmas Mode Styling
+   ========================= */
+
+/* When christmas-mode is active, gently shift the palette */
+body.christmas-mode {
+  /* Background: very light Christmas red/rose */
+  --paper: #fff5f6;      /* warm pastel rose */
+  --muted: #7c4a4d;      /* muted red-ish for subtext */
+  --muted2: #9b666a;     /* lighter muted red-ish */
+  --sage: #2f6b56;       /* pine green accent */
+  --gold: #d4b07a;       /* soft gold accent */
+  /* NOTE: we *don't* change --ink so normal text uses your usual colour */
+
+  background: #fff5f6;
+  padding-top: 60px; /* extra space so lights + glow aren't cut off */
+}
+
+/* Headings: reddy pink */
+body.christmas-mode .title,
+body.christmas-mode .btn h3,
+body.christmas-mode .btn_cs h3 {
+  color: #e47068; /* reddy pink */
+}
+
+/* Chips: Christmas green */
+body.christmas-mode .chip {
+  background-color: #2f6b56; /* Christmas green */
+  color: #f6fcf9;           /* light text */
+  border: 1px solid #234e40;
+}
+
+/* Cards: keep clean, slightly pink border */
+body.christmas-mode .card {
+  background: #ffffff !important;
+  border-color: #f0d1d3;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Tiles (Arcade / Date / I Love You / Type A) */
+body.christmas-mode .btn,
+body.christmas-mode .btn_cs {
+  background: #ffffff !important;
+  border-color: #f0d1d3;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* General message text uses the muted Christmas tone */
+body.christmas-mode .message,
+body.christmas-mode .message.msg2 {
+  color: var(--muted);
+}
+
+/* Footer link nudged into theme but still subtle */
+body.christmas-mode .link {
+  color: #2f6b56;
+}
+
+/* =========================
+   🎄 Christmas top card
+   ========================= */
+
+/* Hidden by default */
+.card--christmas {
+  display: none;
+}
+
+/* Show only when the mode is active */
+body.christmas-mode .card--christmas {
+  display: block;
+}
+
+/* Christmas card: simple white letter with pink border */
+.christmas-card {
+  margin-bottom: 18px;
+  border-radius: 20px;
+  padding: 20px 22px;
+  background-color: #ffffff;
+  border: 2px solid #c65550; /* warm red */
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.10);
+}
+
+/* Text inside the Christmas card */
+body.christmas-mode .christmas-card .title {
+  color: #e47068;
+}
+
+body.christmas-mode .christmas-card .message {
+  color: #7c4a4d;
+}
+
+/* Optional button inside Christmas card, if you use it */
+.christmas-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #2f6b56;
+  background-color: #f6fcf9;
+  color: #2f6b56;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* =========================
+   🎄 Title swap in main card
+   ========================= */
+
+/* Xmas title hidden by default */
+#xmasTitle {
+  display: none;
+}
+
+/* On Christmas: hide normal title, show Xmas title */
+body.christmas-mode #mainTitle {
+  display: none;
+}
+
+body.christmas-mode #xmasTitle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* =========================
+   🎄 Countdown ↔ Christmas message
+   ========================= */
+
+/* Xmas message is hidden normally */
+#xmasMsg {
+  display: none;
+}
+
+/* On Christmas: hide countdown + default text, show Xmas message */
+body.christmas-mode #countdown,
+body.christmas-mode #cuteMsg {
+  display: none;
+}
+
+body.christmas-mode #xmasMsg {
+  display: block;
+}
+
+/* Xmas message styling */
+.message--xmas {
+  text-align: center;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  padding: 10px 6px 0;
+}
+
+body.christmas-mode .message--xmas {
+  color: #e47068;
+}
+
+/* =========================
+   🎄 Light rope across the top
+   ========================= */
+
+/* Hidden by default – *only* show for Christmas mode */
+.lightrope {
+  display: none;
+}
+
+/* Only visible when the Christmas theme is active */
+body.christmas-mode .lightrope {
+  display: block;
+}
+
+.lightrope {
+  text-align: center;
+  white-space: nowrap;
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+  width: 100%;
+  /* no overflow:hidden so the full glow shows */
+}
+
+/* Individual bulbs */
+.lightrope li {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: inline-block;
+
+  width: 12px;
+  height: 28px;
+  border-radius: 50%;
+  margin: 20px; /* 40 / 2 */
+  background: rgba(60, 122, 99, 1); /* green */
+  box-shadow: 0px 28px 24px 3px rgba(60, 122, 99, 0.9);
+  animation-name: flash-1;
+  animation-duration: 2s;
+  animation-fill-mode: both;
+  animation-iteration-count: infinite;
+}
+
+/* Alternate colours: pastel gold + reddy pink matching the site */
+.lightrope li:nth-child(2n + 1) {
+  background: rgba(212, 176, 122, 1); /* gold */
+  box-shadow: 0px 28px 24px 3px rgba(212, 176, 122, 0.7);
+  animation-name: flash-2;
+  animation-duration: 0.8s;
+}
+
+.lightrope li:nth-child(4n + 2) {
+  background: rgba(228, 112, 104, 1); /* reddy pink */
+  box-shadow: 0px 28px 24px 3px rgba(228, 112, 104, 0.9);
+  animation-name: flash-3;
+  animation-duration: 1.1s;
+}
+
+/* Slightly vary timing so it feels more organic */
+.lightrope li:nth-child(odd) {
+  animation-duration: 1.8s;
+}
+.lightrope li:nth-child(3n + 1) {
+  animation-duration: 1.4s;
+}
+
+/* Bulb cap */
+.lightrope li::before {
+  content: "";
+  position: absolute;
+  background: #222;
+  width: 10px;         /* globe-width - 2 */
+  height: 9px;         /* globe-height / 3 */
+  border-radius: 3px;
+  top: -5px;
+  left: 1px;
+}
+
+/* Wire segment between bulbs */
+.lightrope li::after {
+  content: "";
+  position: absolute;
+  top: -14px;
+  left: 9px;           /* globe-width - 3 */
+  width: 52px;         /* globe-spacing + 12 */
+  height: 18px;        /* (globe-height/3 * 2) */
+  border-bottom: 2px solid #222;
+  border-radius: 50%;
+}
+
+/* Remove wire after last bulb */
+.lightrope li:last-child::after {
+  content: none;
+}
+
+/* Pull first bulb slightly left to keep rope centered */
+
+
+/* Flash animations (light-off-opacity ≈ 0.4) */
+@keyframes flash-1 {
+  0%, 100% {
+    background: rgba(60, 122, 99, 1);
+    box-shadow: 0px 28px 24px 3px rgba(60, 122, 99, 0.9);
+  }
+  50% {
+    background: rgba(60, 122, 99, 0.4);
+    box-shadow: 0px 28px 24px 3px rgba(60, 122, 99, 0.2);
+  }
+}
+
+@keyframes flash-2 {
+  0%, 100% {
+    background: rgba(212, 176, 122, 1);
+    box-shadow: 0px 28px 24px 3px rgba(212, 176, 122, 0.7);
+  }
+  50% {
+    background: rgba(212, 176, 122, 0.4);
+    box-shadow: 0px 28px 24px 3px rgba(212, 176, 122, 0.2);
+  }
+}
+
+@keyframes flash-3 {
+  0%, 100% {
+    background: rgba(228, 112, 104, 1);
+    box-shadow: 0px 28px 24px 3px rgba(228, 112, 104, 0.9);
+  }
+  50% {
+    background: rgba(228, 112, 104, 0.4);
+    box-shadow: 0px 28px 24px 3px rgba(228, 112, 104, 0.2);
+  }
+}
+
+/* =========================
+   🎄 Preserve "Coming Soon" greyed-out styles
+   ========================= */
+
+/* Home page Type A (and any other btn_cs that should be grey) */
+body.christmas-mode .btn_cs.typea,
+body.christmas-mode .btn_cs.crossword {
+  background: lightgrey !important;
+  color: var(--muted);
+  box-shadow: none;
+  border-color: #d0d0d0;
+}
+
+/* Story chips that are marked as coming soon (.cs) */
+body.christmas-mode .story-chips .chipCard.cs {
+  background: lightgrey !important;
+  color: var(--muted);
+  box-shadow: none;
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Date Night headings should follow the Xmas heading colour */
+body.christmas-mode .date-card .date-heading {
+  color: #e47068; /* same reddy pink as .title/.btn h3 */
+}

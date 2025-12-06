@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wordle • Arcade</title>
+  <link rel="stylesheet" href="../styles.css" />
+
+  <script>
+    // Same simple auth gate as the other pages
+    const AUTH_KEY = 'auth_token_v1';
+    const AUTH_OK  = 'ok';
+    (function () {
+      if (new URLSearchParams(location.search).has('logout')) {
+        localStorage.removeItem(AUTH_KEY);
+        location.replace('../login.html'); return;
+      }
+      if (localStorage.getItem(AUTH_KEY) !== AUTH_OK) {
+        window.location.replace('../login.html');
+      }
+    })();
+  </script>
+
+  <style>
+    /* --- Wordle-specific minimal styles (uses your palette vars) --- */
+    .wordle-wrap{ display:grid; gap:18px; }
+    .grid{
+      display:grid; grid-template-columns: repeat(5, 56px); gap:10px;
+      justify-content:center; margin:8px auto 0;
+    }
+    .tile{
+      width:56px; height:56px; border-radius:12px;
+      display:grid; place-items:center;
+      font: 700 22px/1 'Mulish', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      text-transform:uppercase;
+      background: #fff;
+      border:1px solid var(--line);
+      box-shadow: 0 3px 10px rgba(0,0,0,.04);
+      transition: transform .12s ease, background .2s ease, border-color .2s ease;
+    }
+    .tile.filled{ border-color: color-mix(in srgb, var(--ink) 20%, transparent); }
+    .tile.pop{ animation: pop .12s ease; }
+    @keyframes pop{ 50%{ transform: scale(1.06) } }
+    .tile.flip{ animation: flip .45s ease both; transform-origin:center; }
+    @keyframes flip{ 0%{ transform: rotateX(0) } 49%{ transform: rotateX(90deg) } 51%{ transform: rotateX(270deg) } 100%{ transform: rotateX(360deg) } }
+
+    /* Color states */
+    .state-correct{ background: color-mix(in srgb, var(--sage) 72%, white 28%); color:#fff; border-color: color-mix(in srgb, var(--sage) 85%, black 15%); }
+    .state-present{ background: color-mix(in srgb, var(--gold) 70%, white 30%); color:#fff; border-color: color-mix(in srgb, var(--gold) 85%, black 15%); }
+    .state-miss{ background: color-mix(in srgb, var(--ink) 14%, white 86%); color: color-mix(in srgb, var(--ink) 70%, white 30%); }
+
+    /* Keyboard */
+    .kbd{ display:grid; gap:8px; justify-content:center; }
+    .row{ display:flex; gap:8px; justify-content:center; }
+    .key{
+      min-width:38px; height:46px; padding:0 10px;
+      border-radius:10px; border:1px solid var(--line); background:#fff; color:var(--ink);
+      font: 700 14px/1 'Mulish', system-ui; text-transform:uppercase;
+      box-shadow: 0 3px 10px rgba(0,0,0,.04);
+      cursor:pointer; user-select:none;
+      transition: background .15s ease, transform .02s ease, border-color .15s ease, color .15s ease;
+    }
+    .key:hover{ background: color-mix(in srgb, var(--sage) 10%, white 90%); }
+    .key:active{ transform: translateY(1px); }
+    .key.big{ min-width:70px; text-transform:none; }
+
+    .key.state-correct{ background: color-mix(in srgb, var(--sage) 72%, white 28%); color:#fff; border-color: color-mix(in srgb, var(--sage) 85%, black 15%); }
+    .key.state-present{ background: color-mix(in srgb, var(--gold) 70%, white 30%); color:#fff; border-color: color-mix(in srgb, var(--gold) 85%, black 15%); }
+    .key.state-miss{ background: color-mix(in srgb, var(--ink) 14%, white 86%); color: color-mix(in srgb, var(--ink) 70%, white 30%); }
+
+    .toast{
+      text-align:center; font-weight:800; color: var(--ink);
+      background: color-mix(in srgb, var(--paper) 85%, white 15%);
+      border:1px solid var(--line); border-radius:12px;
+      padding:10px 14px; width: fit-content; margin: 0 auto 6px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.08);
+      min-height: 24px;
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <!-- Back header -->
+    <div class="page-header">
+      <a class="backBtn" href="../arcade.html" aria-label="Back to Arcade">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 19.1 8.4 12l7.1-7.1-1.4-1.4L5.6 12l8.5 8.5z"/></svg>
+        Back
+      </a>
+      <div aria-hidden="true" style="flex:1"></div>
+    </div>
+
+    <!-- Card -->
+    <section class="card">
+      <h1 class="title">Wordle</h1>
+      <p class="message">5 letters • 6 guesses • Sage = correct · Gold = present · Grey = miss</p>
+
+      <div class="wordle-wrap">
+        <div id="toast" class="toast" aria-live="polite"></div>
+
+        <!-- 6x5 grid -->
+        <div id="grid" class="grid" aria-label="Word grid"></div>
+
+        <!-- On-screen keyboard -->
+        <div class="kbd" aria-label="Keyboard">
+          <div class="row" id="row1"></div>
+          <div class="row" id="row2"></div>
+          <div class="row" id="row3"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <a class="link" href="../index.html">Back to Home</a>
+      &nbsp;•&nbsp;
+      <a class="link" href="../index.html?logout">Logout</a>
+    </footer>
+  </main>
+
+  <script>
+    // --- Simple, romantic Wordle ---
+    const MAX_GUESSES = 6;
+    const WORD_LEN = 5;
+
+    // Small romantic pool; daily deterministic pick
+    const WORDS = [
+      "HEART","SMILE","KISSES","HONEY","ANGEL","AMOUR","AURAS","CUDDL","LOVER","AFORE","AUGUR" // includes 5-letter only; we’ll filter
+    ].filter(w => w.length === WORD_LEN);
+
+    // Tiny accept-list (you can expand later or fetch)
+    const DICT = new Set([
+      ...WORDS,
+      "LOVER","HEART","SMILE","SWEET","ANGEL","AMOUR","HONEY","KISSY","KISSES","CUDDL","AFORE","AUGUR",
+      "ALIVE","ALONE","ADORE","ALOFT","ARISE","AROMA","ARROW","BRAVE","BRING","BRIDE","CHARM","CLOSE",
+      "CRUSH","DREAM","DRIVE","FAITH","FUNNY","GLINT","GRACE","HAPPY","HUMOR","LIGHT","MAGIC","MIRTH",
+      "NERVE","NICEY","NOBLE","PRIDE","QUIET","SMIRK","SMALL","SOFTY","SOLID","STARE","STARS","SUGAR",
+      "THANK","TRUST","UNITY","VIVID","WARMY","WHIRL","WINKS"
+    ].map(w => w.toUpperCase()));
+
+    function pickTodayWord() {
+      const d = new Date();
+      const seed = d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+      return WORDS[seed % WORDS.length];
+    }
+    const ANSWER = pickTodayWord();
+
+    // Build grid
+    const grid = document.getElementById('grid');
+    const tiles = [];
+    for (let r = 0; r < MAX_GUESSES; r++) {
+      for (let c = 0; c < WORD_LEN; c++) {
+        const el = document.createElement('div');
+        el.className = 'tile';
+        el.setAttribute('data-row', r);
+        el.setAttribute('data-col', c);
+        grid.appendChild(el);
+        tiles.push(el);
+      }
+    }
+
+    // Keyboard
+    const ROWS = [
+      "QWERTYUIOP",
+      "ASDFGHJKL",
+      "{ENTER}ZXCVBNM{BKSP}"
+    ];
+    function makeKey(label, big=false) {
+      const b = document.createElement('button');
+      b.className = 'key' + (big ? ' big' : '');
+      b.textContent = label;
+      b.dataset.key = label;
+      b.type = 'button';
+      return b;
+    }
+    const r1 = document.getElementById('row1');
+    const r2 = document.getElementById('row2');
+    const r3 = document.getElementById('row3');
+    [...ROWS[0]].forEach(ch => r1.appendChild(makeKey(ch)));
+    [...ROWS[1]].forEach(ch => r2.appendChild(makeKey(ch)));
+    ROWS[2].replaceAll('{ENTER}','↵ Enter ').replaceAll('{BKSP}','⌫ Back').split(' ').forEach(token => {
+      if (!token) return;
+      const isEnter = token === '↵';
+      const isBack = token === '⌫';
+      if (isEnter || isBack) return; // handled as labels below
+    });
+    // Proper third row with Enter/Back
+    r3.appendChild(makeKey('Enter', true));
+    [..."ZXCVBNM"].forEach(ch => r3.appendChild(makeKey(ch)));
+    r3.appendChild(makeKey('Back', true));
+
+    // State
+    let row = 0, col = 0;
+    const guesses = Array(MAX_GUESSES).fill('').map(()=>Array(WORD_LEN).fill(''));
+
+    // Helpers
+    const toast = (msg='') => (document.getElementById('toast').textContent = msg);
+    const setTile = (r,c,ch) => {
+      const t = tiles[r*WORD_LEN + c];
+      t.textContent = ch;
+      if (ch) t.classList.add('filled','pop'); else t.classList.remove('filled');
+      setTimeout(()=>t.classList.remove('pop'),120);
+    };
+
+    function commitGuess(){
+      const word = guesses[row].join('').toUpperCase();
+      if (word.length < WORD_LEN || guesses[row].some(ch => ch === '')) { toast('Not enough letters'); return; }
+      if (!DICT.has(word)) { toast('Not in word list'); return; }
+      toast('');
+
+      // Score
+      const answerArr = ANSWER.split('');
+      const used = Array(WORD_LEN).fill(false);
+      const result = Array(WORD_LEN).fill('miss');
+
+      // Greens
+      for (let i=0;i<WORD_LEN;i++){
+        if (word[i] === answerArr[i]) { result[i] = 'correct'; used[i] = true; }
+      }
+      // Yellows
+      for (let i=0;i<WORD_LEN;i++){
+        if (result[i] === 'correct') continue;
+        const idx = answerArr.findIndex((ch, k) => !used[k] && ch === word[i]);
+        if (idx !== -1) { result[i] = 'present'; used[idx] = true; }
+      }
+
+      // Paint tiles with flip delay
+      for (let i=0;i<WORD_LEN;i++){
+        const t = tiles[row*WORD_LEN + i];
+        setTimeout(() => {
+          t.classList.add('flip');
+          t.classList.remove('state-correct','state-present','state-miss');
+          t.classList.add('state-' + (result[i]==='correct' ? 'correct' : result[i]==='present' ? 'present' : 'miss'));
+        }, i*110);
+      }
+
+      // Paint keyboard best-known state
+      for (let i=0;i<WORD_LEN;i++){
+        const ch = word[i];
+        const key = document.querySelector(`.key[data-key="${ch}"]`);
+        if (!key) continue;
+        const newClass = result[i]==='correct' ? 'state-correct' :
+                         result[i]==='present' ? 'state-present' : 'state-miss';
+        // Upgrade-only (miss < present < correct)
+        if (key.classList.contains('state-correct')) continue;
+        if (key.classList.contains('state-present') && newClass === 'state-miss') continue;
+        key.classList.remove('state-correct','state-present','state-miss');
+        key.classList.add(newClass);
+      }
+
+      // Win / Lose
+      if (word === ANSWER) {
+        setTimeout(()=> toast('You did it!'), 600);
+        lockInput();
+        return;
+      }
+      row++;
+      col = 0;
+      if (row >= MAX_GUESSES) {
+        setTimeout(()=> toast(`Answer: ${ANSWER}`), 600);
+        lockInput();
+      }
+    }
+
+    function lockInput(){
+      document.removeEventListener('keydown', onKey);
+      document.querySelectorAll('.key').forEach(k=>k.disabled = true);
+    }
+
+    function backspace(){
+      if (col > 0) {
+        col--;
+        guesses[row][col] = '';
+        setTile(row, col, '');
+      }
+    }
+    function addChar(ch){
+      if (col >= WORD_LEN) return;
+      ch = ch.toUpperCase();
+      if (!/^[A-Z]$/.test(ch)) return;
+      guesses[row][col] = ch;
+      setTile(row, col, ch);
+      col++;
+    }
+    function onKey(e){
+      const k = e.key;
+      if (k === 'Enter') return commitGuess();
+      if (k === 'Backspace') return backspace();
+      if (/^[a-zA-Z]$/.test(k)) return addChar(k);
+    }
+    document.addEventListener('keydown', onKey);
+    document.querySelectorAll('.key').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const k = btn.dataset.key;
+        if (k === 'Enter') commitGuess();
+        else if (k === 'Back') backspace();
+        else addChar(k);
+      });
+    });
+
+    // Pre-fill empty grid tiles
+    for (let r=0;r<MAX_GUESSES;r++){
+      for (let c=0;c<WORD_LEN;c++){
+        setTile(r,c,'');
+      }
+    }
+  </script>
+</body>
+</html>

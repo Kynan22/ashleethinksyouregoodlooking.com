@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Missing You</title>
+  <link rel="stylesheet" href="./styles.css" />
+<link rel="stylesheet" href="./season-christmas.css" />
+
+
+  <script>
+    // Super-simple front-end gate
+    const AUTH_KEY = 'auth_token_v1';
+    const AUTH_OK  = 'ok';
+
+    (function () {
+      // logout support
+      if (new URLSearchParams(location.search).has('logout')) {
+        localStorage.removeItem(AUTH_KEY);
+        location.replace('./login.html');
+        return;
+      }
+
+      const tok = localStorage.getItem(AUTH_KEY);
+      if (tok !== AUTH_OK) {
+        window.location.replace('./login.html');
+      }
+    })(); 
+  </script>
+</head>
+<body>
+  <ul class="lightrope">
+  <li></li><li></li><li></li><li></li><li></li>
+  <li></li><li></li><li></li><li></li><li></li>
+</ul>
+  <main class="shell">
+
+
+    <!-- Existing countdown card -->
+    <section class="card">
+      <h1 class="title" id="mainTitle">Missing You</h1>
+      <h1 class="title title--xmas" id="xmasTitle">Merry Christmas Ashlee!</h1>
+
+      <div id="countdown" class="countdown" aria-live="polite">
+        <div class="timebox"><div class="num" id="dd">–</div><div class="label">Days</div></div>
+        <div class="timebox"><div class="num" id="hh">–</div><div class="label">Hours</div></div>
+        <div class="timebox"><div class="num" id="mm">–</div><div class="label">Mins</div></div>
+        <div class="timebox"><div class="num" id="ss">–</div><div class="label">Secs</div></div>
+      </div>
+      <p class="message" id="cuteMsg">Newcastle Countdown</p>
+       <!-- 🎄 Special Christmas message (shown only in christmas-mode) -->
+      <p class="message message--xmas" id="xmasMsg">
+        Getting to spend Christmas with you is the greatest gift I ever could have wished for. 
+        I love you more than you know, thank you for being there for me, thank you for treating me so well, and thank you for loving on me in every way that you do.
+      </p>
+    </section>
+
+    <section class="sections">
+      <a class="btn arcade" href="arcade.html">
+        <span class="chip">Play</span>
+        <h3>Arcade</h3>
+        <p>Bored at work? Click here to pass the time</p>
+      </a>
+
+      <a class="btn date" href="./date-night/index.html">
+        <span class="chip">Decide</span>
+        <h3>Date Night</h3>
+        <p>CLICK HERE IN A HANGRY EMERGENCY</p>
+      </a>
+
+      <a class="btn love" href="./stories.html">
+        <span class="chip">Hehe</span>
+        <h3>I Love You</h3>
+        <p>I really do</p>
+      </a>
+
+      <div class="btn_cs typea">
+        <span class="chip">Organise</span>
+        <h3>Type A(shlee)</h3>
+        <p>Coming Soon...</p>
+      </div>
+    </section>
+
+    <footer><a class="link" href="./index.html?logout">Logout</a></footer>
+  </main>
+ <!-- 🎄 Season-specific behaviour (Christmas, etc.) -->
+  <script src="./season-christmas.js"></script>
+
+  <!-- Countdown script (unchanged) -->
+  <script>
+    // ===== Countdown (no rotating messages) =====
+    const targetDate = new Date('2025-12-19T17:00:00');
+    const el = {
+      d: document.getElementById('dd'),
+      h: document.getElementById('hh'),
+      m: document.getElementById('mm'),
+      s: document.getElementById('ss'),
+      msg: document.getElementById('cuteMsg')
+    };
+
+    function pad(n){ return n.toString().padStart(2,'0'); }
+
+    function tick(){
+      const now = new Date();
+      const diff = targetDate - now;
+      if(diff <= 0){
+        el.d.textContent = '00';
+        el.h.textContent = '00';
+        el.m.textContent = '00';
+        el.s.textContent = '00';
+        el.msg.textContent = "TIME TO HANG :)";
+        clearInterval(timer);
+        return;
+      }
+      const sec = Math.floor(diff/1000);
+      const d = Math.floor(sec/86400);
+      const h = Math.floor((sec%86400)/3600);
+      const m = Math.floor((sec%3600)/60);
+      const s = sec%60;
+      el.d.textContent = pad(d);
+      el.h.textContent = pad(h);
+      el.m.textContent = pad(m);
+      el.s.textContent = pad(s);
+    }
+    const timer = setInterval(tick, 1000);
+    tick();
+  </script>
+</body>
+</html>

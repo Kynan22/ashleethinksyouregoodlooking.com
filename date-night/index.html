@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Date Night</title>
+  <link rel="stylesheet" href="../styles.css" />
+
+  <script>
+    // Same front-end gate as index.html
+    const AUTH_KEY = 'auth_token_v1';
+    const AUTH_OK  = 'ok';
+
+    (function () {
+      if (new URLSearchParams(location.search).has('logout')) {
+        localStorage.removeItem(AUTH_KEY);
+        location.replace('../login.html');
+        return;
+      }
+      const tok = localStorage.getItem(AUTH_KEY);
+      if (tok !== AUTH_OK) {
+        window.location.replace('../login.html');
+      }
+    })();
+  </script>
+
+  <!-- Page-specific polish -->
+  <style>
+    
+  </style>
+</head>
+
+<body>
+  <main class="shell date-shell">
+    <!-- Back header (same as Arcade) -->
+    <div class="game-header">
+      <a class="backBtn" href="../index.html" aria-label="Back to Home">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M15.5 19.1 8.4 12l7.1-7.1-1.4-1.4L5.6 12l8.5 8.5z"/>
+        </svg>
+        Back
+      </a>
+      <div aria-hidden="true" style="flex:1"></div>
+    </div>
+
+    <!-- Header card -->
+    <section class="card">
+      <h1 class="title">Date Night</h1>
+      <p class="message">
+        Add ideas, spin the wheel, and let it pick for you!
+      </p>
+      <p class="message msg2">"You're Not You When You're Hangry"</p>
+    </section>
+
+    <!-- Wheel + options -->
+    <section class="date-grid">
+      <article class="card date-card">
+        <h2 class="date-heading">Spin the wheel</h2>
+        <div class="wheel-area">
+          <div class="wheel-container">
+            <!-- Pointer attached to wheel -->
+            <div class="wheel-arrow" aria-hidden="true"></div>
+
+            <div id="wheelSpinner" class="wheel-spinner">
+              <canvas id="wheelCanvas"></canvas>
+            </div>
+
+            <!-- Centre result -->
+            <div id="wheelCenter" class="wheel-center">Add options &amp; spin</div>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="spin-row">
+          <button id="btnSpin" type="button" class="btn-solid">Spin</button>
+          <button id="btnClearAll" type="button" class="ghost ghost-small">Clear all</button>
+        </div>
+
+        <!-- Options input + list -->
+        <div class="date-options-compact">
+          <div class="date-options-row">
+            <input
+              id="optionInput"
+              type="text"
+              class="date-input"
+              placeholder="Add an option..." />
+            <button id="btnAddOption" type="button" class="ghost">Add</button>
+          </div>
+
+          <div id="optionsList" class="date-options-list">
+            <div class="options-empty">
+              No options yet.
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <footer>
+      <a class="link" href="../index.html">Back to Home</a>
+      &nbsp;•&nbsp;
+      <a class="link" href="../index.html?logout">Logout</a>
+    </footer>
+  </main>
+
+  <script>
+    // ===== DOM refs =====
+    const wheelCanvas   = document.getElementById("wheelCanvas");
+    const wheelSpinner  = document.getElementById("wheelSpinner");
+    const wheelCenter   = document.getElementById("wheelCenter");
+    const optionsListEl = document.getElementById("optionsList");
+    const optionInput   = document.getElementById("optionInput");
+    const btnAddOption  = document.getElementById("btnAddOption");
+    const btnSpin       = document.getElementById("btnSpin");
+    const btnClearAll   = document.getElementById("btnClearAll");
+
+    const ctx = wheelCanvas.getContext("2d");
+
+    // ===== State =====
+    let options = [];
+    let isSpinning = false;
+    let currentRotation = 0;   // total degrees we've rotated
+    let lastSelectedIndex = null;
+
+    // Theme-ish slice colours
+    const SLICE_COLORS = [
+      "#E3F0E9", // pale sage
+      "#F6EBDD", // warm cream / gold-ish
+      "#F7F4EE", // paper
+      "#E9F2E5", // light green
+      "#F1E5D4", // muted gold
+      "#EDE7F3"  // very soft lilac
+    ];
+
+    // ===== Wheel drawing (canvas) =====
+    function setupCanvas() {
+      const size = 320; // mobile friendly
+      wheelCanvas.width  = size;
+      wheelCanvas.height = size;
+      drawWheel();
+    }
+
+    function setOptions(newOptions) {
+      const cleaned = [...new Set(
+        newOptions
+          .map(o => (o || "").trim())
+          .filter(Boolean)
+      )];
+      options = cleaned;
+      lastSelectedIndex = null;
+      wheelCenter.textContent = options.length ? "Ready to spin" : "Add options & spin";
+      renderOptions();
+      drawWheel();
+    }
+
+    function addOption(text) {
+      const val = (text || "").trim();
+      if (!val) return;
+      if (!options.includes(val)) {
+        options.push(val);
+        renderOptions();
+        drawWheel();
+      }
+    }
+
+    function clearAllOptions() {
+      options = [];
+      wheelCenter.textContent = "Add options & spin";
+      renderOptions();
+      drawWheel();
+    }
+
+    function removeOption(text) {
+      options = options.filter(o => o !== text);
+      renderOptions();
+      drawWheel();
+    }
+
+    function renderOptions() {
+      if (!options.length) {
+        optionsListEl.innerHTML =
+          '<div class="options-empty">No options yet.</div>';
+        return;
+      }
+
+      const ul = document.createElement("ul");
+      ul.className = "options-ul";
+
+      options.forEach(opt => {
+        const li = document.createElement("li");
+        li.className = "options-li";
+
+        const label = document.createElement("span");
+        label.className = "opt-label";
+        label.textContent = opt;
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "remove-btn";
+        btn.textContent = "✕";
+        btn.addEventListener("click", () => removeOption(opt));
+
+        li.appendChild(label);
+        li.appendChild(btn);
+        ul.appendChild(li);
+      });
+
+      optionsListEl.innerHTML = "";
+      optionsListEl.appendChild(ul);
+    }
+
+    function drawWheel() {
+      const size   = wheelCanvas.width;
+      const cx     = size / 2;
+      const cy     = size / 2;
+      const radius = size / 2 - 8;
+
+      ctx.clearRect(0, 0, size, size);
+
+      if (!options.length) {
+        // Neutral sage-tinted wheel before options
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fillStyle = "#E3F0E9";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,.08)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        return;
+      }
+
+      const sliceAngle = (Math.PI * 2) / options.length;
+      const baseFontSize = options.length > 10 ? 11 : 13;
+      const textRadius = radius - 26; // where labels sit
+
+      options.forEach((opt, i) => {
+        const start = i * sliceAngle;
+        const end   = start + sliceAngle;
+        const mid   = start + sliceAngle / 2;
+
+        const color = SLICE_COLORS[i % SLICE_COLORS.length];
+
+        // Slice
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, start, end);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,.06)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Label: centred in slice, drawn sideways (radial) and themed font
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(mid + Math.PI / 2); // rotate so text is sideways in the slice
+
+        ctx.fillStyle = "#3A4B42"; // soft dark sage
+        ctx.font = `600 ${baseFontSize}px "Mulish", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        const label = opt.length > 20 ? opt.slice(0, 17) + "…" : opt;
+        ctx.fillText(label, 0, -textRadius);
+
+        ctx.restore();
+      });
+    }
+
+    // ===== Spin logic (CSS rotation; pointer at 12 o'clock) =====
+    function spinWheel() {
+  if (isSpinning) return;
+  if (options.length < 2) {
+    // If you added the pretty popup, this will use it; otherwise fallback to alert
+    if (typeof showEmptyPopup === "function") {
+      showEmptyPopup();
+    } else {
+      alert("Add at least 2 options before spinning.");
+    }
+    return;
+  }
+
+  isSpinning = true;
+  btnSpin.disabled = true;
+  btnClearAll.disabled = true;
+
+  // More dramatic spins – e.g. 6–9 full rotations
+  const extraTurns = 6 + Math.floor(Math.random() * 4); // 6–9 full spins
+  const randomOffset = Math.random() * 360;              // random final angle within the circle
+
+  // 🔑 Add on top of the currentRotation, not from 0
+  const targetRotation = currentRotation + extraTurns * 360 + randomOffset;
+
+  currentRotation = targetRotation;
+  wheelCenter.textContent = "Spinning…";
+
+  wheelSpinner.style.transition = "transform 4s cubic-bezier(0.33, 1, 0.68, 1)";
+  wheelSpinner.style.transform  = `rotate(${targetRotation}deg)`;
+}
+
+    wheelSpinner.addEventListener("transitionend", () => {
+  if (!isSpinning) return;
+  isSpinning = false;
+  btnSpin.disabled = false;
+  btnClearAll.disabled = false;
+
+  // Stop animating further changes
+  wheelSpinner.style.transition = "none";
+
+  if (!options.length) return;
+
+  const sliceDeg = 360 / options.length;
+
+  // Normalise the final rotation to 0–360
+  let finalRotation = currentRotation % 360;
+  if (finalRotation < 0) finalRotation += 360;
+
+  // Pointer is at 12 o'clock = 270° in canvas coordinates
+  const pointerDeg = 270;
+
+  // Where does the pointer land in wheel-local coordinates?
+  let localAngle = pointerDeg - finalRotation;
+  localAngle = ((localAngle % 360) + 360) % 360; // normalise 0–359
+
+  const index = Math.floor(localAngle / sliceDeg) % options.length;
+  lastSelectedIndex = index;
+
+  const choice = options[index];
+  wheelCenter.textContent = choice;
+
+  // 🔑 Collapse the transform back to the small (0–360) angle
+  currentRotation = finalRotation;
+  wheelSpinner.style.transform = `rotate(${currentRotation}deg)`;
+});
+
+
+    // ===== Events =====
+    btnAddOption.addEventListener("click", () => {
+      addOption(optionInput.value);
+      optionInput.value = "";
+      optionInput.focus();
+    });
+
+    optionInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addOption(optionInput.value);
+        optionInput.value = "";
+      }
+    });
+
+    btnSpin.addEventListener("click", spinWheel);
+    btnClearAll.addEventListener("click", clearAllOptions);
+
+    // Initial setup
+    setupCanvas();
+    renderOptions();
+  </script>
+
+</body>
+</html>
