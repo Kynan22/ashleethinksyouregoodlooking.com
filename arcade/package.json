@@ -1,0 +1,21 @@
+{
+	"name": "forashlee",
+	"scripts": {
+		"build": "esbuild --bundle src/main.js --outfile=www/main.js --minify",
+		"dev": "esbuild --bundle src/main.js --outfile=www/main.js --servedir=www",
+		"bundle": "npm run build && mkdir -p dist && zip -r dist/game.zip www -x \"**/.DS_Store\"",
+		"preview": "vite preview"
+	},
+	"version": "1.0.0",
+	"description": "- `src` - source code for your kaboom project - `www` - distribution folder, contains your index.html, built js bundle and static assets",
+	"main": "index.js",
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"kaboom": "^3000.1.17"
+	},
+	"devDependencies": {
+		"vite": "^7.1.7"
+	}
+}

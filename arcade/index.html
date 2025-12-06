@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arcade</title>
+
+  <!-- Reuse your main site styles -->
+  <link rel="stylesheet" href="../styles.css" />
+
+
+  <style>
+    /* --- Page scaffolding --- */
+    .game-card{ padding:0; overflow:hidden; }
+
+    /* Slim header above the game to hold the back button (adds top space) */
+    .game-header{
+      display:flex; align-items:center; gap:.75rem;
+      padding:14px 16px;
+      border-bottom:1px solid rgba(0,0,0,.08);
+      background: color-mix(in srgb, var(--paper, transparent) 70%, transparent);
+    }
+
+    /* Site-style back button (ghost/outline vibe) */
+    .backBtn{
+      display:inline-flex; align-items:center; gap:.5rem;
+      padding:8px 12px; border-radius:12px;
+      background: transparent;
+      border:1px solid color-mix(in srgb, var(--ink, #111) 25%, transparent);
+      color: var(--ink, #111);
+      font-weight:700; font-size:14px; text-decoration:none;
+      -webkit-tap-highlight-color:transparent;
+      transition: background .15s ease, border-color .15s ease, transform .02s ease;
+    }
+    .backBtn:hover{
+      background: color-mix(in srgb, var(--ink, #111) 8%, transparent);
+    }
+    .backBtn:active{ transform: translateY(1px); }
+    .backBtn svg{ width:16px; height:16px; display:block; }
+
+    /* --- Game area --- */
+    #game{
+      position:relative;
+      display:flex; align-items:center; justify-content:center;
+      background: transparent;            /* was #000 — now transparent */
+      width:100%;
+      height:min(80vh, 78svh);
+    }
+    #game > canvas{
+      display:block;
+      touch-action:none; pointer-events:auto;
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    /* --- HUD layout (centered) --- */
+    .hud{
+      position:absolute; inset:auto 0 2.5vh 0;
+      display:flex; flex-direction:column; align-items:center; gap:2rem;
+      padding:0 3vw calc(2.5vh + env(safe-area-inset-bottom, 0px));
+      pointer-events:none;
+    }
+
+    #hudPlay, #hudJump, #hudDuck{
+      pointer-events:auto;
+      border:2px solid #444;
+      background:#1d1d24cc;
+      color:var(--ink, #eaeaea);
+      font-weight:800;
+      -webkit-tap-highlight-color:transparent;
+      touch-action:manipulation;
+    }
+
+    #hudPlay{
+      position:absolute; left:50%; transform:translateX(-50%);
+      bottom: 22vh;
+      min-width: 370px;
+      padding: clamp(14px, 3vh, 22px);
+      font-size: clamp(18px, 3vh, 24px);
+      border-radius: 18px;
+    }
+
+    /* Center the bottom row and keep both buttons equal width */
+    .row2{
+      width: min(440px, 80vw);
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;            /* centered, not space-evenly */
+      align-items: center;
+      gap: clamp(12px, 3vw, 24px);
+    }
+    #hudJump, #hudDuck{
+      flex: 1 1 0;                        /* equal widths */
+      min-width: 0;
+      max-width: 140px;                   /* prevents pushing to edges */
+      padding: clamp(14px, 3.2vh, 22px);
+      font-size: clamp(18px, 2.8vh, 22px);
+      border-radius: 16px;
+    }
+
+    @media (max-width: 430px){
+  #hudPlay {
+    bottom: 22vh;
+    min-width: 80vw;
+    padding: 12px;
+    font-size: 16px;
+  }
+
+  .row2 {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    gap: 10px;
+  }
+
+  #hudJump,
+  #hudDuck {
+    flex: 1 1 auto;        /* share space, but don't force huge width */
+    max-width: 44vw;       /* each button max ~half the screen */
+    padding: 10px 8px;
+    font-size: 15px;
+  }
+}
+
+
+    /* === Highscore modal styles (matches sticker/site aesthetic) === */
+    .kb-hs-modal{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      background:rgba(0,0,0,.45);
+      z-index:9999;
+    }
+    .kb-hs-hidden{
+      display:none;
+    }
+    .kb-hs-card{
+      background: var(--paper, #f6fcf9);
+      border-radius:18px;
+      padding:22px 20px 18px;
+      max-width:360px;
+      width:100%;
+      box-shadow:0 18px 45px rgba(0,0,0,.25);
+      border:2px solid #f8cbc6;
+      text-align:center;
+      font-family: "Calistoga", "Fraunces", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .kb-hs-title{
+      font-size:22px;
+      margin-bottom:8px;
+      color:#c65550;
+    }
+    .kb-hs-text{
+      font-size:15px;
+      margin-bottom:12px;
+      color:var(--ink, #333);
+    }
+    .kb-hs-score{
+      font-weight:700;
+      color:#e47068;
+    }
+    .kb-hs-label{
+      display:block;
+      text-align:left;
+      font-size:14px;
+      margin-bottom:14px;
+      color:#444;
+      font-family:"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .kb-hs-input{
+      margin-top:4px;
+      width:100%;
+      border-radius:10px;
+      border:1px solid #f8cbc6;
+      padding:8px 10px;
+      font-size:14px;
+      font-family:inherit;
+      outline:none;
+      background:#fff;
+    }
+    .kb-hs-input:focus{
+      border-color:#e47068;
+      box-shadow:0 0 0 2px rgba(228,112,104,.15);
+    }
+    .kb-hs-buttons{
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+      margin-top:6px;
+    }
+    .kb-hs-btn{
+      border-radius:999px;
+      border:none;
+      padding:8px 16px;
+      font-size:14px;
+      font-family:inherit;
+      cursor:pointer;
+      transition:transform .08s ease, box-shadow .08s ease, background .12s ease;
+    }
+    .kb-hs-btn-primary{
+      background:#e47068;
+      color:#fff;
+      box-shadow:0 8px 18px rgba(198,85,80,.4);
+    }
+    .kb-hs-btn-primary:hover{
+      transform:translateY(-1px);
+      box-shadow:0 10px 24px rgba(198,85,80,.5);
+    }
+    .kb-hs-btn-ghost{
+      background:transparent;
+      color:#c65550;
+    }
+    .kb-hs-btn-ghost:hover{
+      background:rgba(248,203,198,.4);
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="card game-card">
+      <!-- Header with site-style back button (creates top space) -->
+      <div class="game-header">
+        <a class="backBtn" href="../arcade.html" aria-label="Back to main">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 19.1 8.4 12l7.1-7.1-1.4-1.4L5.6 12l8.5 8.5z"/></svg>
+          Back
+        </a>
+        <div aria-hidden="true" style="flex:1"></div>
+      </div>
+
+      <!-- Game mount -->
+      <div id="game" role="main" aria-label="Game">
+        <div id="hud" class="hud" aria-hidden="true">
+          <button id="hudPlay" type="button">PLAY</button>
+          <div class="row2">
+            <button id="hudJump" type="button">JUMP</button>
+            <button id="hudDuck" type="button">DUCK</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Highscore modal -->
+  <div id="hsModal" class="kb-hs-modal kb-hs-hidden">
+    <div class="kb-hs-card">
+      <h2 class="kb-hs-title">New High Score! ✨</h2>
+      <p class="kb-hs-text">
+        You scored <span id="hsScoreValue" class="kb-hs-score">0</span>
+      </p>
+
+      <label class="kb-hs-label">
+        Name
+        <input id="hsNameInput" class="kb-hs-input" type="text" placeholder="Type your name" />
+      </label>
+
+      <div class="kb-hs-buttons">
+        <button id="hsSkip" class="kb-hs-btn kb-hs-btn-ghost" type="button">Skip</button>
+        <button id="hsSubmit" class="kb-hs-btn kb-hs-btn-primary" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Your Kaboom game -->
+  <script type="module" src="./src/main.js?v=5"></script>
+
+  <!-- Fit canvas + HUD wiring -->
+  <script>
+    const hud    = document.getElementById('hud');
+    const hudPlay= document.getElementById('hudPlay');
+    const hudJump= document.getElementById('hudJump');
+    const hudDuck= document.getElementById('hudDuck');
+
+    const ASPECT = 900/1100;
+    function fitCanvas(cvs){
+      const host = document.getElementById('game').getBoundingClientRect();
+      const availW = host.width, availH = host.height;
+      let cw, ch;
+      if (availW / availH > ASPECT) { ch = availH; cw = ch * ASPECT; }
+      else { cw = availW; ch = cw / ASPECT; }
+      cvs.style.width  = Math.floor(cw) + 'px';
+      cvs.style.height = Math.floor(ch) + 'px';
+    }
+
+    (function waitForCanvas(){
+      let tries = 0;
+      (function look(){
+        const cvs = document.querySelector('#game > canvas');
+        if (!cvs) { if (tries++ < 120) return requestAnimationFrame(look); return; }
+        fitCanvas(cvs);
+        addEventListener('resize', () => fitCanvas(cvs));
+        if (visualViewport) visualViewport.addEventListener('resize', () => fitCanvas(cvs));
+        addEventListener('orientationchange', () => fitCanvas(cvs));
+        hud.setAttribute('aria-hidden', 'false');
+
+        const call = (fn) => typeof window[fn] === 'function' && window[fn]();
+        const handler = (fn) => (e) => { e.preventDefault(); e.stopPropagation(); call(fn); };
+
+        hudPlay.addEventListener('pointerdown', handler('__kbStart'), {passive:false});
+        hudPlay.addEventListener('click',       handler('__kbStart'), {passive:false});
+        hudJump.addEventListener('pointerdown', handler('__kbJump'),  {passive:false});
+        hudJump.addEventListener('click',       handler('__kbJump'),  {passive:false});
+        hudDuck.addEventListener('pointerdown', handler('__kbDuck'),  {passive:false});
+        hudDuck.addEventListener('click',       handler('__kbDuck'),  {passive:false});
+      })();
+    })();
+
+    // ESC to go back (optional)
+    addEventListener('keydown', (e) => { if (e.key === 'Escape') location.href = '../'; });
+
+    // === Highscore modal wiring: exposes window.openHighScoreModal(score, cb) ===
+    (function setupHighScoreModal(){
+      const modal      = document.getElementById('hsModal');
+      const scoreEl    = document.getElementById('hsScoreValue');
+      const nameInput  = document.getElementById('hsNameInput');
+      const btnSubmit  = document.getElementById('hsSubmit');
+      const btnSkip    = document.getElementById('hsSkip');
+
+      if (!modal || !scoreEl || !nameInput || !btnSubmit || !btnSkip) return;
+
+      const PLAYER_NAME_KEY = "gizmo_player_name";
+
+      function openHighScoreModal(score, onResult){
+        const defaultName = localStorage.getItem(PLAYER_NAME_KEY) || "";
+
+        scoreEl.textContent = score;
+        nameInput.value = defaultName;
+        modal.classList.remove('kb-hs-hidden');
+
+        function close(){
+          modal.classList.add('kb-hs-hidden');
+          btnSubmit.removeEventListener('click', onSubmit);
+          btnSkip.removeEventListener('click', onSkip);
+          nameInput.removeEventListener('keydown', onKey);
+        }
+
+        function onSubmit(){
+          const name = nameInput.value.trim() || defaultName || "Anonymous";
+          localStorage.setItem(PLAYER_NAME_KEY, name);
+          close();
+          onResult && onResult(name);
+        }
+
+        function onSkip(){
+          const name = defaultName || "Anonymous";
+          close();
+          onResult && onResult(name);
+        }
+
+        function onKey(e){
+          if (e.key === 'Enter'){
+            e.preventDefault();
+            onSubmit();
+          }
+        }
+
+        btnSubmit.addEventListener('click', onSubmit);
+        btnSkip.addEventListener('click', onSkip);
+        nameInput.addEventListener('keydown', onKey);
+
+        setTimeout(() => nameInput.focus(), 20);
+      }
+
+      // Make available to main.js
+      window.openHighScoreModal = openHighScoreModal;
+    })();
+  </script>
+</body>
+</html>
