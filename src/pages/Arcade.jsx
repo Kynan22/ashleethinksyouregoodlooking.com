@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 
 export default function Arcade() {
   return (
-    <Layout title="Arcade" subtitle="Pick a game to play">
+    <Layout title="Arcade" subtitle="Pick a game to play" backTo="/">
       <section className="sections">
         <div className="btn arcade" style={{ opacity: 0.45, pointerEvents: 'none' }}>
           <span className="chip">Runner</span>

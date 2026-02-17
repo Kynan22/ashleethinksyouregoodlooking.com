@@ -3,7 +3,7 @@ import BackButton from './BackButton';
 import Lightrope from './Lightrope';
 import { useSeason } from '../hooks/useSeason';
 
-export default function Layout({ children, title, subtitle, showBack = true, showFooter = true }) {
+export default function Layout({ children, title, subtitle, showBack = true, showFooter = true, backTo }) {
   const { signOut } = useAuth();
   const { isChristmas } = useSeason();
 
@@ -13,7 +13,7 @@ export default function Layout({ children, title, subtitle, showBack = true, sho
       <main className="shell">
         {showBack && (
           <div className="game-header">
-            <BackButton />
+            <BackButton to={backTo} />
             <div aria-hidden="true" style={{ flex: 1 }} />
           </div>
         )}
