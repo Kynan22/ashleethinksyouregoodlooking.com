@@ -22,7 +22,7 @@ const PAGES = [
     items: [
       {
         name: 'Cheese & Crackers Board',
-        desc: 'A selection of brie, aged cheddar & gouda with water crackers, quince paste & fresh grapes',
+        desc: 'A selection of crackers, dips and cheese',
       },
     ],
   },
@@ -42,7 +42,7 @@ const PAGES = [
     items: [
       {
         name: 'Yochi Run',
-        desc: 'A walk down to Yochi for froyo — because we deserve it',
+        desc: 'A walk down to Yochi for froyo — Biscoff allowed',
       },
     ],
   },
@@ -65,7 +65,7 @@ const PAGES = [
           Happy Valentine's Day, Ashlee.
         </p>
         <p className="vday-back-note">
-          Every moment with you is my favourite.<br />
+          To my beautiful girl, being with you means everything to me.<br />
           I love you more than words could ever say.
         </p>
         <Heart className="vday-back-heart" size={32} />
