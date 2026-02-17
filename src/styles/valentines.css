@@ -1,0 +1,197 @@
+/* ===== Valentine's Day Menu ===== */
+
+.vday-bg {
+  min-height: 100dvh;
+  background: linear-gradient(165deg, #fde8ec 0%, #fbd0d9 40%, #f8c4cf 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Floating hearts */
+.vday-hearts-bg {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; overflow: hidden;
+}
+.vday-float-heart {
+  position: absolute; bottom: -20px;
+  color: #e8607a;
+  animation: floatUp linear infinite;
+}
+@keyframes floatUp {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-100vh) rotate(25deg); opacity: 0; }
+}
+
+/* Book container */
+.vday-book {
+  position: relative;
+  max-width: 440px; margin: 0 auto;
+  background: linear-gradient(135deg, #fffbf8 0%, #fdf6f0 100%);
+  border-radius: 4px 16px 16px 4px;
+  box-shadow:
+    -4px 0 0 #c9354d,
+    -6px 0 0 #a82a3f,
+    -8px 0 0 #8b1a2b,
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    0 4px 16px rgba(201, 53, 77, 0.15);
+  overflow: hidden;
+}
+
+/* Spine edge */
+.vday-spine {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 18px;
+  background: linear-gradient(90deg, #a82a3f 0%, #c9354d 40%, rgba(201, 53, 77, 0.08) 100%);
+  z-index: 2;
+}
+.vday-spine::after {
+  content: '';
+  position: absolute; left: 16px; top: 0; bottom: 0; width: 1px;
+  background: rgba(201, 53, 77, 0.1);
+}
+
+/* Page content */
+.vday-page {
+  padding: 40px 32px 24px 44px;
+  min-height: 440px;
+  display: flex; align-items: center; justify-content: center;
+  animation: pageIn 0.4s ease both;
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Cover page */
+.vday-page-cover {
+  text-align: center; width: 100%;
+}
+.vday-cover-title {
+  font-family: 'Calistoga', Georgia, serif;
+  font-size: clamp(26px, 6vw, 34px);
+  color: #c9354d; margin: 12px 0 6px;
+  line-height: 1.2;
+}
+.vday-cover-sub {
+  font-size: 15px; color: #a0725a;
+  font-style: italic; margin: 0 0 24px;
+}
+.vday-cover-date {
+  font-size: 13px; color: #c9354d;
+  font-weight: 700; letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.vday-cover-names {
+  font-family: 'Calistoga', Georgia, serif;
+  font-size: 20px; color: #a0725a;
+  margin-top: 16px;
+}
+
+/* Ornaments */
+.vday-ornament {
+  color: #e8607a; font-size: 20px; opacity: 0.5;
+  margin: 4px 0;
+  text-align: center;
+}
+
+/* Menu section pages */
+.vday-page-menu {
+  text-align: center; width: 100%;
+}
+.vday-section-title {
+  font-family: 'Calistoga', Georgia, serif;
+  font-size: clamp(22px, 5vw, 28px);
+  color: #c9354d; margin: 8px 0 4px;
+}
+.vday-divider {
+  width: 60px; height: 1px; margin: 14px auto;
+  background: linear-gradient(90deg, transparent, #e8607a, transparent);
+}
+.vday-items {
+  display: flex; flex-direction: column; gap: 24px;
+  margin: 8px 0;
+}
+.vday-item-name {
+  font-family: 'Calistoga', Georgia, serif;
+  font-size: 17px; color: #3d2218; margin: 0 0 4px;
+}
+.vday-item-desc {
+  font-size: 13px; color: #8a7060; margin: 0;
+  font-style: italic; line-height: 1.5;
+}
+
+/* Back page */
+.vday-page-back {
+  text-align: center; width: 100%;
+}
+.vday-back-msg {
+  font-family: 'Calistoga', Georgia, serif;
+  font-size: 22px; color: #c9354d;
+  margin: 16px 0 12px;
+}
+.vday-back-note {
+  font-size: 15px; color: #a0725a;
+  font-style: italic; line-height: 1.7;
+  margin: 0 0 20px;
+}
+.vday-back-heart {
+  color: #e8607a; margin: 8px auto;
+  display: block;
+  animation: heartbeat 1.4s ease-in-out infinite;
+}
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.15); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.1); }
+  56% { transform: scale(1); }
+}
+
+/* Navigation */
+.vday-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 24px 16px 36px;
+  border-top: 1px solid rgba(201, 53, 77, 0.08);
+}
+.vday-nav-btn {
+  background: none; border: 1px solid rgba(201, 53, 77, 0.2);
+  border-radius: 50%; width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #c9354d;
+  transition: all 0.15s ease;
+}
+.vday-nav-btn:hover:not(:disabled) {
+  background: rgba(201, 53, 77, 0.08);
+}
+.vday-nav-btn:disabled {
+  opacity: 0.25; cursor: default;
+}
+.vday-dots {
+  display: flex; gap: 8px; align-items: center;
+}
+.vday-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(201, 53, 77, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.vday-dot.active {
+  background: #c9354d;
+  transform: scale(1.3);
+}
+.vday-dot:hover { background: rgba(201, 53, 77, 0.4); }
+
+/* Override shell text on light pink bg */
+.vday-bg .game-header { margin-bottom: 8px; }
+.vday-bg .back-btn { color: #8b1a2b; }
+.vday-bg .back-btn:hover { color: #c9354d; }
+
+/* Mobile */
+@media (max-width: 480px) {
+  .vday-page { padding: 32px 20px 20px 36px; min-height: 380px; }
+  .vday-nav { padding: 10px 16px 14px 32px; }
+  .vday-spine { width: 14px; }
+  .vday-spine::after { left: 12px; }
+}

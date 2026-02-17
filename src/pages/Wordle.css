@@ -1,0 +1,107 @@
+:root {
+  --wordle-correct-bg: #6F8F7B;
+  --wordle-correct-border: #5a7a66;
+  --wordle-present-bg: #f3a3b0;
+  --wordle-present-border: #e28191;
+}
+
+.wordle-shell { padding-bottom: 200px; }
+.wordle-shell .card { position: relative; }
+
+.card-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 2px;
+}
+.card-header .backBtn { flex: 0 0 auto; margin: 0; }
+.card-header .title { flex: 1 1 auto; text-align: center; margin: 0; }
+
+.wordle-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px; width: 100%;
+}
+
+.grid {
+  display: grid; grid-template-columns: repeat(5, 52px);
+  gap: 8px; justify-content: center;
+}
+.tile {
+  width: 52px; height: 52px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Mulish', system-ui, sans-serif;
+  font-weight: 700; font-size: 24px; text-transform: uppercase;
+  background: #fff; border: 2px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0,0,0,.04);
+  transition: transform .1s ease;
+}
+.tile.filled { border-color: #c0c0c0; }
+.tile.pop { animation: pop .1s ease; }
+@keyframes pop { 50% { transform: scale(1.08); } }
+
+.tile.state-correct { background: var(--wordle-correct-bg); color: #fff; border-color: var(--wordle-correct-border); }
+.tile.state-present { background: var(--wordle-present-bg); color: #fff; border-color: var(--wordle-present-border); }
+.tile.state-miss { background: #d7d7d7; color: #fff; border-color: #c0c0c0; }
+
+.toast {
+  text-align: center; font-weight: 600; font-size: 12px; color: #333;
+  background: #fff; border: 1px solid #e0e0e0; border-radius: 10px;
+  padding: 2px 10px; min-width: 100px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+  min-height: 16px; line-height: 1.2;
+}
+.toast.hidden { visibility: hidden; }
+
+.share-btn {
+  flex: 0 0 auto; padding: 4px 12px; border-radius: 999px; border: none;
+  background: var(--wordle-correct-bg); color: #fff;
+  font-family: 'Mulish', system-ui, sans-serif; font-weight: 700; font-size: 12px;
+  cursor: pointer; box-shadow: 0 3px 8px rgba(0,0,0,.1);
+  transition: opacity .15s ease, background .15s ease;
+  opacity: 0; visibility: hidden; pointer-events: none;
+}
+.share-btn.visible { opacity: 1; visibility: visible; pointer-events: auto; }
+.share-btn:hover { background: var(--wordle-correct-border); }
+
+.keyboard-shell {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.12);
+  z-index: 500;
+}
+.keyboard {
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+  width: 100%; max-width: 484px; margin: 0 auto;
+}
+.keyboard-row { display: flex; gap: 5px; justify-content: center; width: 100%; }
+.key {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 32px; height: 50px; padding: 0 12px;
+  border-radius: 8px; border: none; background: #f0f0f0;
+  color: #333; font-family: 'Mulish', system-ui, sans-serif;
+  font-weight: 700; font-size: 14px; text-transform: uppercase;
+  cursor: pointer; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s ease, color .15s ease;
+}
+.key:hover { background: #e4e4e4; }
+.key:active { transform: scale(0.95); }
+.key.wide { min-width: 56px; font-size: 12px; }
+.key.state-correct { background: var(--wordle-correct-bg); color: #fff; }
+.key.state-present { background: var(--wordle-present-bg); color: #fff; }
+.key.state-miss { background: #b0b0b0; color: #fff; }
+
+.share-success {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: #333; color: #fff; padding: 12px 24px;
+  border-radius: 10px; font-weight: 700; font-size: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.2); z-index: 1000;
+  opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+}
+.share-success.show { opacity: 1; }
+
+@media (max-width: 400px) {
+  .grid { grid-template-columns: repeat(5, 44px); gap: 4px; }
+  .tile { width: 44px; height: 44px; font-size: 20px; }
+  .keyboard-shell { padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+  .key { min-width: 28px; height: 44px; padding: 0 6px; font-size: 12px; border-radius: 6px; }
+  .key.wide { min-width: 44px; font-size: 10px; }
+}
